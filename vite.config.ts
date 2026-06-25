@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Relative base so the build works at any path — root (home server / Netlify)
+  // *and* a project sub-path like GitHub Pages (/nutrition-app/).
+  base: './',
   plugins: [react()],
   server: {
     host: true,

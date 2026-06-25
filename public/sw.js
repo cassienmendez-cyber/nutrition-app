@@ -1,8 +1,10 @@
 // Service worker: offline support (precache + runtime cache), Web Push, and
 // notification handling so Bloom is installable and works without a connection.
 
-const VERSION = 'bloom-v2'
-const CORE = ['/', '/index.html', '/manifest.json', '/icon.svg']
+const VERSION = 'bloom-v3'
+// Relative to the SW's own scope, so this works at root or a project sub-path.
+const CORE = ['./', './index.html', './manifest.json', './icon.svg']
+const SHELL = new URL('./', self.registration.scope).pathname
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()))
@@ -33,10 +35,10 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((res) => {
           const copy = res.clone()
-          caches.open(VERSION).then((c) => c.put('/', copy)).catch(() => {})
+          caches.open(VERSION).then((c) => c.put(SHELL, copy)).catch(() => {})
           return res
         })
-        .catch(() => caches.match(request).then((r) => r || caches.match('/'))),
+        .catch(() => caches.match(request).then((r) => r || caches.match(SHELL) || caches.match('./'))),
     )
     return
   }

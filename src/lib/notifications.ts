@@ -90,7 +90,8 @@ export async function requestPermission(): Promise<NotificationPermission> {
 export async function registerServiceWorker(): Promise<void> {
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('/sw.js')
+      // BASE_URL makes this work at root and at a project sub-path (GitHub Pages).
+      await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`)
     } catch {
       /* ignore — notifications still work via the Notification constructor */
     }

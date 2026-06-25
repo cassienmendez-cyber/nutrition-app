@@ -60,7 +60,7 @@ export default function App() {
     const go = new URLSearchParams(window.location.search).get('go')
     if (go && ['eat', 'track', 'water', 'coach'].includes(go)) {
       quick(go as WidgetAction)
-      window.history.replaceState({}, '', '/') // clean URL so refresh won't repeat
+      window.history.replaceState({}, '', window.location.pathname) // clean URL so refresh won't repeat
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

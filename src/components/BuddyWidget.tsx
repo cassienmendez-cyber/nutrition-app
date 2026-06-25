@@ -47,7 +47,7 @@ export function BuddyWidget({ onAction, compact }: { onAction?: (a: WidgetAction
               <span>{a.label}</span>
             </button>
           ) : (
-            <a key={a.key} className="bw-btn" href={`/?go=${a.key}`}>
+            <a key={a.key} className="bw-btn" href={`?go=${a.key}`}>
               <span className="bw-emoji">{a.emoji}</span>
               <span>{a.label}</span>
             </a>
@@ -67,7 +67,7 @@ export function WidgetView() {
       <div className="widget-card">
         <div className="widget-brand">🌱 {state.pet.name}</div>
         <BuddyWidget />
-        <a className="widget-open" href="/">Open Bloom →</a>
+        <a className="widget-open" href={import.meta.env.BASE_URL}>Open Bloom →</a>
       </div>
     </div>
   )
