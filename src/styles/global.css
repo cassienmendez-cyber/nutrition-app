@@ -139,6 +139,8 @@ h1, h2, h3, h4 {
   border: 1px solid var(--line);
 }
 .card.flush { padding: 0; overflow: hidden; }
+.card.tappable { cursor: pointer; transition: transform 0.08s, box-shadow 0.15s; }
+.card.tappable:active { transform: scale(0.99); box-shadow: var(--shadow); }
 .card-title {
   font-size: 13px;
   font-weight: 700;
@@ -527,6 +529,17 @@ input:focus, textarea:focus, select:focus {
   place-items: center;
   overflow: hidden;
 }
+/* a soft "ground" so the creature feels grounded, not floating in a void */
+.pet-scene::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  background: linear-gradient(transparent, rgba(31, 122, 98, 0.14));
+  pointer-events: none;
+}
 .pet-stage {
   position: relative;
   z-index: 2;
@@ -644,6 +657,13 @@ input:focus, textarea:focus, select:focus {
   padding: 6px 13px;
   border-radius: 999px;
   white-space: nowrap;
+  display: inline-block;
+}
+.points-pill.bump { animation: pillBump 0.42s ease; }
+@keyframes pillBump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18); }
+  100% { transform: scale(1); }
 }
 .meters { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
 .meter .bar { margin-top: 4px; }

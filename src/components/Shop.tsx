@@ -4,6 +4,7 @@ import { availablePoints } from '../lib/points'
 import { SHOP, effectiveGrowth, type ShopItem, type FoodTag } from '../lib/pet'
 import { BACKGROUNDS, PROPS } from '../lib/cosmetics'
 import { today } from '../lib/dates'
+import { PointsPill } from './PointsPill'
 
 const TAG_LABEL: Record<FoodTag, { label: string; cls: string }> = {
   wholesome: { label: '🌱 grows fast', cls: 'tag-wholesome' },
@@ -72,7 +73,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <h2 style={{ fontSize: 20 }}>Shop</h2>
-          <span className="points-pill">✨ {points}</span>
+          <PointsPill value={points} />
         </div>
 
         <div className="seg" style={{ marginBottom: 14 }}>

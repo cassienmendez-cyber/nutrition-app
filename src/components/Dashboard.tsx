@@ -5,6 +5,7 @@ import { weeklyInsights } from '../lib/coach'
 import { todayPoints } from '../lib/points'
 import { prettyDate, daysBetween, today } from '../lib/dates'
 import { PetHabitat } from './PetHabitat'
+import { PointsPill } from './PointsPill'
 
 export function Dashboard({ go }: { go: (tab: string) => void }) {
   const { state, todayLog } = useApp()
@@ -47,7 +48,7 @@ export function Dashboard({ go }: { go: (tab: string) => void }) {
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="card-title" style={{ marginBottom: 0 }}>Points earned today</div>
-          <span className="points-pill">✨ +{points.total}</span>
+          <PointsPill value={points.total} prefix="✨ +" />
         </div>
         {points.lines.length > 0 ? (
           <div className="chip-row" style={{ marginTop: 12 }}>
@@ -94,7 +95,7 @@ export function Dashboard({ go }: { go: (tab: string) => void }) {
 
       {/* A coach nudge if there's one */}
       {insights.length > 0 && (
-        <div className="card" onClick={() => go('coach')} style={{ cursor: 'pointer' }}>
+        <div className="card tappable" onClick={() => go('coach')}>
           <div className="card-title">A note from your coach</div>
           <div className={`insight ${insights[0].tone}`}>
             <span className="ic">💬</span>

@@ -157,6 +157,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
               </div>
               <button
                 className={`chip ${sound ? 'selected' : ''}`}
+                aria-pressed={sound}
                 onClick={() => { const v = !sound; setSound(v); setSoundOn(v); if (v) playFeed() }}
               >
                 {sound ? 'On' : 'Off'}
@@ -204,7 +205,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
                 <div className="stat-row">
                   <span className="emoji">🔔</span>
                   <div className="body"><div className="name">Reminders</div></div>
-                  <button className={`chip ${reminders.enabled ? 'selected' : ''}`} onClick={() => update({ enabled: !reminders.enabled })}>
+                  <button className={`chip ${reminders.enabled ? 'selected' : ''}`} aria-pressed={reminders.enabled} onClick={() => update({ enabled: !reminders.enabled })}>
                     {reminders.enabled ? 'On' : 'Off'}
                   </button>
                 </div>

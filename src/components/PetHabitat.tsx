@@ -8,6 +8,7 @@ import { playFeed } from '../lib/sound'
 import { Creature } from './Creature'
 import { Shop } from './Shop'
 import { Prestige } from './Prestige'
+import { PointsPill } from './PointsPill'
 
 // The companion's home — the heart of the game. The creature physically evolves
 // here; feeding plays a cute care animation (bounce, hearts, sparkles, happy
@@ -80,7 +81,7 @@ export function PetHabitat() {
             </div>
             <div className="muted" style={{ fontSize: 13 }}>{lvl.name} · {m.emoji} {m.text}</div>
           </div>
-          <span className="points-pill">✨ {points}</span>
+          <PointsPill value={points} />
         </div>
 
         {/* This stage's growth pool (resets each evolution) */}

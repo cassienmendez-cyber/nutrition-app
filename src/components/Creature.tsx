@@ -222,7 +222,7 @@ export function Creature({
       {behind}
       <ellipse cx={cx} cy={91} rx={rx * 0.92} ry={5} fill="rgba(24,36,43,0.12)" />
       {limbs}
-      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={body} />
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={body} stroke={accent} strokeWidth={2} strokeOpacity={0.18} />
       <ellipse cx={cx} cy={cy + ry * 0.3} rx={rx * 0.6} ry={ry * 0.52} fill={belly} />
       {front}
       <ellipse cx={cx - rx * 0.56} cy={mouthY - 3} rx={5 * st.scale} ry={3.2 * st.scale} fill="rgba(255,148,148,0.30)" />
