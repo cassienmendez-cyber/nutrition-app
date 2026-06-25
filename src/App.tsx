@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from './store/AppContext'
 import { Dashboard } from './components/Dashboard'
 import { Exercise } from './components/Exercise'
@@ -34,6 +34,36 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [celebration, setCelebration] = useState<EarnedEvent | null>(null)
   const [grewUp, setGrewUp] = useState<string | null>(null)
+  const [dir, setDir] = useState<'l' | 'r'>('r')
+  const touch = useRef<{ x: number; y: number } | null>(null)
+
+  const idx = TABS.findIndex((t) => t.key === tab)
+
+  // Switch tabs with a direction-aware slide (used by swipe, nav and links).
+  function goTab(next: Tab) {
+    const ni = TABS.findIndex((t) => t.key === next)
+    setDir(ni >= idx ? 'r' : 'l')
+    setTab(next)
+  }
+
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0]
+    touch.current = { x: t.clientX, y: t.clientY }
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    if (!touch.current) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - touch.current.x
+    const dy = t.clientY - touch.current.y
+    touch.current = null
+    // Require a deliberate, horizontal-dominant swipe.
+    if (Math.abs(dx) < 64 || Math.abs(dx) < Math.abs(dy) * 1.7) return
+    // Don't hijack swipes inside overlays, scrollers or form fields.
+    const el = e.target as HTMLElement
+    if (el.closest('.sheet-overlay, input, textarea, select, [data-no-swipe]')) return
+    if (dx < 0 && idx < TABS.length - 1) goTab(TABS[idx + 1].key)
+    else if (dx > 0 && idx > 0) goTab(TABS[idx - 1].key)
+  }
 
   // Register the service worker and resume reminders if the user enabled them.
   useEffect(() => {
@@ -90,12 +120,24 @@ export default function App() {
       </button>
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
 
-      {tab === 'today' && <Dashboard go={(t) => setTab(t as Tab)} />}
-      {tab === 'move' && <Exercise />}
-      {tab === 'eat' && <Nutrition />}
-      {tab === 'cycle' && <Fertility />}
-      {tab === 'trends' && <Trends />}
-      {tab === 'coach' && <Coach />}
+      {/* Swipeable content — swipe left/right to move between sections */}
+      <div className="swipe-area" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        <div className={`tab-pane ${dir}`} key={tab}>
+          {tab === 'today' && <Dashboard go={(t) => goTab(t as Tab)} />}
+          {tab === 'move' && <Exercise />}
+          {tab === 'eat' && <Nutrition />}
+          {tab === 'cycle' && <Fertility />}
+          {tab === 'trends' && <Trends />}
+          {tab === 'coach' && <Coach />}
+        </div>
+      </div>
+
+      {/* Page dots — show where you are across the sections */}
+      <div className="swipe-dots" aria-hidden="true">
+        {TABS.map((t) => (
+          <i key={t.key} className={t.key === tab ? 'on' : ''} />
+        ))}
+      </div>
 
       {/* Trophy unlock celebration */}
       {celebration && (
@@ -132,7 +174,7 @@ export default function App() {
           <button
             key={t.key}
             className={tab === t.key ? 'active' : ''}
-            onClick={() => setTab(t.key)}
+            onClick={() => goTab(t.key)}
           >
             <span className="ico">{t.ico}</span>
             {t.label}

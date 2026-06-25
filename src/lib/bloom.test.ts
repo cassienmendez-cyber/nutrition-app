@@ -392,3 +392,54 @@ describe('pet', () => {
     expect(settlePet(pet, 9_999_999_999).level).toBe(2)
   })
 })
+
+describe('workout (GPS tracking)', () => {
+  it('haversine ≈ real distance between two close points', async () => {
+    const { haversine } = await import('./workout')
+    // ~111 m per 0.001° latitude
+    const d = haversine({ lat: 40.0, lng: -73.0, t: 0 }, { lat: 40.001, lng: -73.0, t: 0 })
+    expect(d).toBeGreaterThan(105)
+    expect(d).toBeLessThan(118)
+  })
+
+  it('pathDistance sums a path but ignores sub-2m jitter', async () => {
+    const { pathDistance } = await import('./workout')
+    const straight = pathDistance([
+      { lat: 40.0, lng: -73.0, t: 0 },
+      { lat: 40.001, lng: -73.0, t: 1 },
+      { lat: 40.002, lng: -73.0, t: 2 },
+    ])
+    expect(straight).toBeGreaterThan(210)
+    // identical points add nothing
+    const jitter = pathDistance([
+      { lat: 40.0, lng: -73.0, t: 0 },
+      { lat: 40.0, lng: -73.0, t: 1 },
+    ])
+    expect(jitter).toBe(0)
+  })
+
+  it('pace and formatting', async () => {
+    const { paceSecPerKm, fmtDuration, fmtPace } = await import('./workout')
+    expect(paceSecPerKm(1000, 300)).toBeCloseTo(300, 5) // 5:00/km
+    expect(paceSecPerKm(2, 300)).toBe(0) // too short → no pace
+    expect(fmtDuration(125)).toBe('2:05')
+    expect(fmtDuration(3661)).toBe('1:01:01')
+    expect(fmtPace(0)).toBe('—')
+  })
+
+  it('routePath produces an SVG path that fits the box', async () => {
+    const { routePath } = await import('./workout')
+    const d = routePath(
+      [
+        { lat: 40.0, lng: -73.0, t: 0 },
+        { lat: 40.001, lng: -73.001, t: 1 },
+        { lat: 40.002, lng: -73.0, t: 2 },
+      ],
+      320,
+      220,
+    )
+    expect(d.startsWith('M')).toBe(true)
+    expect(d).toContain('L')
+    expect(routePath([{ lat: 40, lng: -73, t: 0 }], 320, 220)).toBe('') // need ≥2 points
+  })
+})

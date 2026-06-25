@@ -812,3 +812,121 @@ input:focus, textarea:focus, select:focus {
   box-shadow: var(--shadow);
   z-index: 25;
 }
+
+/* ---- Workout tracker (GPS) ---------------------------------------------- */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 36, 43, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface);
+  border-radius: 26px 26px 0 0;
+  padding: 14px 18px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow);
+  max-height: 94vh;
+  overflow-y: auto;
+  animation: sheet-up 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-grip {
+  width: 42px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--gray-soft);
+  margin: 2px auto 10px;
+}
+.wk-timer {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  color: var(--ink);
+}
+.wk-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+.wk-stats:has(> :nth-child(3)) { grid-template-columns: repeat(3, 1fr); }
+.wk-stats > div {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px 8px;
+  text-align: center;
+}
+.wk-val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.wk-lab { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
+.wk-map {
+  margin-top: 12px;
+  background: linear-gradient(180deg, var(--blue-soft), var(--sage-soft));
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.wk-map-empty {
+  height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-align: center;
+}
+.wk-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.btn.danger { background: var(--ink); color: #fff; }
+.btn.danger:active { transform: scale(0.98); }
+
+/* Recent workouts list */
+.wk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.wk-row .wk-emoji { font-size: 22px; }
+.wk-row .wk-meta { flex: 1; }
+.wk-row .wk-stat { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Swipe hint dots under the screen */
+.swipe-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0 2px;
+}
+.swipe-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gray-soft);
+  transition: background 0.2s, width 0.2s;
+}
+.swipe-dots i.on { background: var(--blue); width: 16px; border-radius: 3px; }
+
+/* ---- Swipeable tab panes ------------------------------------------------- */
+.swipe-area { touch-action: pan-y; }
+.tab-pane { animation: pane-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.tab-pane.r { animation-name: pane-in-r; }
+.tab-pane.l { animation-name: pane-in-l; }
+@keyframes pane-in-r { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pane-in-l { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pane-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .tab-pane { animation: none; }
+}

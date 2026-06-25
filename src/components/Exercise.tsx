@@ -6,10 +6,14 @@ import {
   buildWorkout,
 } from '../lib/exercise'
 import type { PainArea } from '../types'
+import { WorkoutTracker } from './WorkoutTracker'
+import { activityMeta, fmtDistance, fmtDuration, fmtPace, loadWorkouts, deleteWorkout, type Workout } from '../lib/workout'
 
 export function Exercise() {
   const { state, todayLog, patchDay } = useApp()
   const [logged, setLogged] = useState(false)
+  const [tracking, setTracking] = useState(false)
+  const [workouts, setWorkouts] = useState<Workout[]>(() => loadWorkouts())
 
   const feel = todayLog.bodyFeel
   const pain = todayLog.pain
@@ -30,12 +34,56 @@ export function Exercise() {
     setTimeout(() => setLogged(false), 2500)
   }
 
+  const fmtWhen = (ms: number) =>
+    new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+
   return (
     <div className="screen">
       <div className="screen-head">
         <div className="eyebrow">Movement</div>
         <h1>How does your body feel today?</h1>
         <p>No “what workout?” — we start with you, then build around it.</p>
+      </div>
+
+      {/* GPS workout tracker — like a Fitbit, free and local */}
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div className="card-title" style={{ marginBottom: 2 }}>Track a workout</div>
+            <p className="muted" style={{ margin: 0, fontSize: 13 }}>GPS maps your route — time, distance & pace.</p>
+          </div>
+          <button className="btn" style={{ width: 'auto', padding: '10px 16px' }} onClick={() => setTracking(true)}>
+            ▶ Start
+          </button>
+        </div>
+
+        {workouts.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            {workouts.slice(0, 4).map((w) => {
+              const m = activityMeta(w.type)
+              return (
+                <div className="wk-row" key={w.id}>
+                  <span className="wk-emoji">{m.emoji}</span>
+                  <div className="wk-meta">
+                    <div style={{ fontWeight: 600 }}>{m.label} · {fmtWhen(w.end)}</div>
+                    <div className="muted" style={{ fontSize: 13 }}>
+                      {fmtDuration(w.durationSec)}
+                      {w.distanceM > 5 && ` · ${fmtDistance(w.distanceM)} · ${fmtPace(w.paceSecPerKm)}`}
+                    </div>
+                  </div>
+                  <button
+                    aria-label="Delete workout"
+                    className="icon-btn"
+                    onClick={() => setWorkouts(deleteWorkout(w.id))}
+                    style={{ background: 'none', color: 'var(--ink-faint)', fontSize: 18 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -113,6 +161,15 @@ export function Exercise() {
       <p className="center muted" style={{ fontSize: 12 }}>
         Goal: {state.profile.movementGoal} min/day · gentle and flexible
       </p>
+
+      {tracking && (
+        <WorkoutTracker
+          onClose={() => {
+            setTracking(false)
+            setWorkouts(loadWorkouts())
+          }}
+        />
+      )}
     </div>
   )
 }
