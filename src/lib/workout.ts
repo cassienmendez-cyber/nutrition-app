@@ -89,6 +89,18 @@ export function paceSecPerKm(distanceM: number, durationSec: number): number {
   return durationSec / (distanceM / 1000)
 }
 
+// Rough step estimate from distance & activity (free — no pedometer needed).
+// Stride lengths are averages; biking returns 0 (not step-based).
+export function estimateSteps(distanceM: number, type: ActivityType): number {
+  if (type === 'bike' || distanceM < 1) return 0
+  const stride = type === 'run' ? 1.05 : 0.74 // metres per step
+  return Math.round(distanceM / stride)
+}
+
+export function fmtSteps(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n)
+}
+
 // Project GPS points into x/y pixels that fit a w×h box, preserving aspect
 // (free self-drawn map — no tiles). Equirectangular, scaled by latitude.
 export function projectPoints(points: GpsPoint[], w: number, h: number, pad = 8): { x: number; y: number }[] {
@@ -117,6 +129,42 @@ export function routePath(points: GpsPoint[], w: number, h: number, pad = 8): st
   return projectPoints(points, w, h, pad)
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
     .join(' ')
+}
+
+// ---- preferences ---------------------------------------------------------
+
+const UNIT_KEY = 'bloom.units.v1'
+export type Units = 'mi' | 'km'
+
+export function getUnits(): Units {
+  try {
+    return localStorage.getItem(UNIT_KEY) === 'km' ? 'km' : 'mi'
+  } catch {
+    return 'mi'
+  }
+}
+export function setUnits(u: Units): void {
+  try {
+    localStorage.setItem(UNIT_KEY, u)
+  } catch {
+    /* ignore */
+  }
+}
+
+const AUTOPAUSE_KEY = 'bloom.autopause.v1'
+export function getAutoPause(): boolean {
+  try {
+    return localStorage.getItem(AUTOPAUSE_KEY) !== 'off' // default on
+  } catch {
+    return true
+  }
+}
+export function setAutoPause(on: boolean): void {
+  try {
+    localStorage.setItem(AUTOPAUSE_KEY, on ? 'on' : 'off')
+  } catch {
+    /* ignore */
+  }
 }
 
 // ---- persistence (own localStorage key — no AppState migration needed) ----

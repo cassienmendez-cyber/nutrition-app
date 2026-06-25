@@ -3,16 +3,24 @@ import { useApp } from '../store/AppContext'
 import {
   ACTIVITIES,
   activityMeta,
+  estimateSteps,
   fmtDistance,
   fmtDuration,
   fmtPace,
+  fmtSteps,
+  getAutoPause,
+  getUnits,
+  haversine,
   pathDistance,
   paceSecPerKm,
   projectPoints,
   routePath,
   saveWorkout,
+  setAutoPause as persistAutoPause,
+  setUnits as persistUnits,
   type ActivityType,
   type GpsPoint,
+  type Units,
   type Workout,
 } from '../lib/workout'
 import { newId } from '../store/AppContext'
@@ -30,15 +38,25 @@ export function WorkoutTracker({ onClose }: { onClose: () => void }) {
   const [accuracy, setAccuracy] = useState<number | null>(null)
   const [gpsErr, setGpsErr] = useState<string | null>(null)
   const [saved, setSaved] = useState<Workout | null>(null)
+  const [units, setUnits] = useState<Units>(() => getUnits())
+  const [autoPause, setAutoPause] = useState(() => getAutoPause())
+  const [autoPaused, setAutoPaused] = useState(false)
 
   const watchId = useRef<number | null>(null)
   const tickId = useRef<ReturnType<typeof setInterval> | null>(null)
-  const segStart = useRef(0) // ms the current active segment began
-  const accMs = useRef(0) // active ms banked from previous segments
+  const accMs = useRef(0) // banked active ms
+  const lastTick = useRef(0) // ms at last tick (to accumulate deltas)
+  const lastMove = useRef(0) // ms of the last real movement (for auto-pause)
+  const lastPt = useRef<GpsPoint | null>(null)
+  const runningRef = useRef(false) // counting active time right now?
+  const autoPausedRef = useRef(false) // mirror of autoPaused for stable closures
   const wakeLock = useRef<{ release: () => void } | null>(null)
 
+  const miles = units === 'mi'
+  const STILL_MS = 7000 // stop counting after ~7s of no movement
   const distanceM = pathDistance(pts)
   const pace = paceSecPerKm(distanceM, elapsed)
+  const steps = estimateSteps(distanceM, type)
 
   // --- lifecycle helpers ---------------------------------------------------
   function startWatch() {
@@ -51,7 +69,19 @@ export function WorkoutTracker({ onClose }: { onClose: () => void }) {
         setGpsErr(null)
         setAccuracy(pos.coords.accuracy)
         if (pos.coords.accuracy > 50) return // too noisy to trust — skip
-        setPts((prev) => [...prev, { lat: pos.coords.latitude, lng: pos.coords.longitude, t: pos.timestamp }])
+        const pt: GpsPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude, t: pos.timestamp }
+        // Real movement? (beyond GPS jitter) — drives auto-pause/resume.
+        const moved = lastPt.current ? haversine(lastPt.current, pt) : 0
+        if (!lastPt.current || moved >= 2) {
+          lastMove.current = Date.now()
+          if (autoPausedRef.current) {
+            autoPausedRef.current = false
+            setAutoPaused(false)
+            runningRef.current = true
+          }
+        }
+        lastPt.current = pt
+        setPts((prev) => [...prev, pt])
       },
       (err) => {
         setGpsErr(
@@ -70,8 +100,18 @@ export function WorkoutTracker({ onClose }: { onClose: () => void }) {
     }
   }
   function startTick() {
+    lastTick.current = Date.now()
     tickId.current = setInterval(() => {
-      setElapsed((accMs.current + (Date.now() - segStart.current)) / 1000)
+      const now = Date.now()
+      // Auto-pause: stop counting after a stretch with no real movement.
+      if (autoPause && runningRef.current && now - lastMove.current > STILL_MS) {
+        runningRef.current = false
+        autoPausedRef.current = true
+        setAutoPaused(true)
+      }
+      if (runningRef.current) accMs.current += now - lastTick.current
+      lastTick.current = now
+      setElapsed(accMs.current / 1000)
     }, 250)
   }
   function stopTick() {
@@ -99,7 +139,11 @@ export function WorkoutTracker({ onClose }: { onClose: () => void }) {
   // --- controls ------------------------------------------------------------
   function start() {
     accMs.current = 0
-    segStart.current = Date.now()
+    lastMove.current = Date.now()
+    lastPt.current = null
+    runningRef.current = true
+    autoPausedRef.current = false
+    setAutoPaused(false)
     setPts([])
     setElapsed(0)
     setPhase('tracking')
@@ -108,19 +152,23 @@ export function WorkoutTracker({ onClose }: { onClose: () => void }) {
     requestWakeLock()
   }
   function pause() {
-    accMs.current += Date.now() - segStart.current
-    stopTick()
+    runningRef.current = false
+    autoPausedRef.current = false
+    setAutoPaused(false)
     stopWatch()
     setPhase('paused')
   }
   function resume() {
-    segStart.current = Date.now()
+    runningRef.current = true
+    lastMove.current = Date.now()
+    lastTick.current = Date.now()
+    autoPausedRef.current = false
+    setAutoPaused(false)
     setPhase('tracking')
     startWatch()
-    startTick()
   }
   function finish() {
-    if (phase === 'tracking') accMs.current += Date.now() - segStart.current
+    runningRef.current = false
     stopTick()
     stopWatch()
     releaseWakeLock()
@@ -180,6 +228,40 @@ export function WorkoutTracker({ onClose }: { onClose: () => void }) {
                 </button>
               ))}
             </div>
+
+            {/* Units + auto-pause preferences */}
+            <div className="wk-prefs">
+              <div className="wk-pref">
+                <span>Units</span>
+                <div className="seg">
+                  {(['mi', 'km'] as Units[]).map((u) => (
+                    <button
+                      key={u}
+                      className={units === u ? 'on' : ''}
+                      onClick={() => {
+                        setUnits(u)
+                        persistUnits(u)
+                      }}
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="wk-pref">
+                <span>Auto-pause when I stop</span>
+                <input
+                  type="checkbox"
+                  className="switch"
+                  checked={autoPause}
+                  onChange={(e) => {
+                    setAutoPause(e.target.checked)
+                    persistAutoPause(e.target.checked)
+                  }}
+                />
+              </label>
+            </div>
+
             <button className="btn" style={{ marginTop: 16 }} onClick={start}>
               {meta.emoji} Start {meta.label.toLowerCase()}
             </button>
@@ -201,19 +283,27 @@ export function WorkoutTracker({ onClose }: { onClose: () => void }) {
             {/* Big live timer */}
             <div className="center">
               <div className="wk-timer">{fmtDuration(elapsed)}</div>
-              <div className="muted" style={{ fontSize: 12 }}>{phase === 'paused' ? 'Paused' : 'Active time'}</div>
+              <div className="muted" style={{ fontSize: 12 }}>
+                {phase === 'paused' ? 'Paused' : autoPaused ? '⏸ Auto-paused — move to resume' : 'Active time'}
+              </div>
             </div>
 
             {/* Live stats */}
             <div className="wk-stats">
               <div>
-                <div className="wk-val">{fmtDistance(distanceM)}</div>
+                <div className="wk-val">{fmtDistance(distanceM, miles)}</div>
                 <div className="wk-lab">Distance</div>
               </div>
               <div>
-                <div className="wk-val">{fmtPace(pace)}</div>
+                <div className="wk-val">{fmtPace(pace, miles)}</div>
                 <div className="wk-lab">Pace</div>
               </div>
+              {steps > 0 && (
+                <div>
+                  <div className="wk-val">{fmtSteps(steps)}</div>
+                  <div className="wk-lab">Steps</div>
+                </div>
+              )}
             </div>
 
             {/* Self-drawn route map (free — no tiles) */}
@@ -257,8 +347,11 @@ export function WorkoutTracker({ onClose }: { onClose: () => void }) {
             </div>
             <div className="wk-stats" style={{ marginTop: 6 }}>
               <div><div className="wk-val">{fmtDuration(saved.durationSec)}</div><div className="wk-lab">Time</div></div>
-              <div><div className="wk-val">{fmtDistance(saved.distanceM)}</div><div className="wk-lab">Distance</div></div>
-              <div><div className="wk-val">{fmtPace(saved.paceSecPerKm)}</div><div className="wk-lab">Pace</div></div>
+              <div><div className="wk-val">{fmtDistance(saved.distanceM, miles)}</div><div className="wk-lab">Distance</div></div>
+              <div><div className="wk-val">{fmtPace(saved.paceSecPerKm, miles)}</div><div className="wk-lab">Pace</div></div>
+              {estimateSteps(saved.distanceM, saved.type) > 0 && (
+                <div><div className="wk-val">{fmtSteps(estimateSteps(saved.distanceM, saved.type))}</div><div className="wk-lab">Steps</div></div>
+              )}
             </div>
             {routePath(saved.points, W, H) && (
               <div className="wk-map" style={{ marginTop: 10 }}>

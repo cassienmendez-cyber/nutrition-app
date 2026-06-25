@@ -427,6 +427,15 @@ describe('workout (GPS tracking)', () => {
     expect(fmtPace(0)).toBe('—')
   })
 
+  it('estimateSteps scales with distance & activity, zero for biking', async () => {
+    const { estimateSteps, fmtSteps } = await import('./workout')
+    expect(estimateSteps(740, 'walk')).toBe(1000) // ~0.74 m stride
+    expect(estimateSteps(1050, 'run')).toBe(1000) // longer running stride
+    expect(estimateSteps(5000, 'bike')).toBe(0)
+    expect(fmtSteps(1500)).toBe('1.5k')
+    expect(fmtSteps(950)).toBe('950')
+  })
+
   it('routePath produces an SVG path that fits the box', async () => {
     const { routePath } = await import('./workout')
     const d = routePath(

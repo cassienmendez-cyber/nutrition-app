@@ -7,13 +7,14 @@ import {
 } from '../lib/exercise'
 import type { PainArea } from '../types'
 import { WorkoutTracker } from './WorkoutTracker'
-import { activityMeta, fmtDistance, fmtDuration, fmtPace, loadWorkouts, deleteWorkout, type Workout } from '../lib/workout'
+import { activityMeta, estimateSteps, fmtDistance, fmtDuration, fmtPace, fmtSteps, getUnits, loadWorkouts, deleteWorkout, type Workout } from '../lib/workout'
 
 export function Exercise() {
   const { state, todayLog, patchDay } = useApp()
   const [logged, setLogged] = useState(false)
   const [tracking, setTracking] = useState(false)
   const [workouts, setWorkouts] = useState<Workout[]>(() => loadWorkouts())
+  const miles = getUnits() === 'mi'
 
   const feel = todayLog.bodyFeel
   const pain = todayLog.pain
@@ -61,6 +62,7 @@ export function Exercise() {
           <div style={{ marginTop: 12 }}>
             {workouts.slice(0, 4).map((w) => {
               const m = activityMeta(w.type)
+              const steps = estimateSteps(w.distanceM, w.type)
               return (
                 <div className="wk-row" key={w.id}>
                   <span className="wk-emoji">{m.emoji}</span>
@@ -68,7 +70,8 @@ export function Exercise() {
                     <div style={{ fontWeight: 600 }}>{m.label} · {fmtWhen(w.end)}</div>
                     <div className="muted" style={{ fontSize: 13 }}>
                       {fmtDuration(w.durationSec)}
-                      {w.distanceM > 5 && ` · ${fmtDistance(w.distanceM)} · ${fmtPace(w.paceSecPerKm)}`}
+                      {w.distanceM > 5 && ` · ${fmtDistance(w.distanceM, miles)} · ${fmtPace(w.paceSecPerKm, miles)}`}
+                      {steps > 0 && ` · ${fmtSteps(steps)} steps`}
                     </div>
                   </div>
                   <button
