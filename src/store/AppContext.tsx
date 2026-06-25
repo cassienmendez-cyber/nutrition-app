@@ -103,8 +103,9 @@ function load(): AppState {
   } catch {
     /* ignore — fall through to the seed */
   }
-  // First run (or unreadable data) ships with demo history.
-  return seedState()
+  // First run starts empty: onboarding → your own named pet, 0 points, no demo
+  // history. (Demo data is still available via Settings → "Load demo data".)
+  return emptyState()
 }
 
 function save(state: AppState) {
