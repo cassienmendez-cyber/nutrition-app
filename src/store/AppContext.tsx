@@ -41,6 +41,7 @@ type Action =
   | { type: 'REMOVE_MEAL'; date: ISODate; mealId: string }
   | { type: 'ADD_CHECKIN'; date: ISODate; checkIn: CheckIn }
   | { type: 'SET_PROFILE'; profile: Partial<Profile>; onboard?: boolean }
+  | { type: 'IMPORT'; state: AppState }
   | { type: 'RESET'; demo: boolean }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -82,6 +83,8 @@ function reducer(state: AppState, action: Action): AppState {
         profile: { ...state.profile, ...action.profile },
         onboarded: action.onboard ? true : state.onboarded,
       }
+    case 'IMPORT':
+      return action.state
     case 'RESET':
       return action.demo ? seedState() : emptyState()
     default:
@@ -97,6 +100,7 @@ interface Ctx {
   removeMeal: (mealId: string, date?: ISODate) => void
   addCheckIn: (checkIn: CheckIn, date?: ISODate) => void
   setProfile: (profile: Partial<Profile>, onboard?: boolean) => void
+  importState: (state: AppState) => void
   reset: (demo: boolean) => void
 }
 
@@ -118,6 +122,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       removeMeal: (mealId, date = t) => dispatch({ type: 'REMOVE_MEAL', date, mealId }),
       addCheckIn: (checkIn, date = t) => dispatch({ type: 'ADD_CHECKIN', date, checkIn }),
       setProfile: (profile, onboard) => dispatch({ type: 'SET_PROFILE', profile, onboard }),
+      importState: (next) => dispatch({ type: 'IMPORT', state: next }),
       reset: (demo) => dispatch({ type: 'RESET', demo }),
     }
   }, [state])

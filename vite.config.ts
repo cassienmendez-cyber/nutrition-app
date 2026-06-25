@@ -7,5 +7,13 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // Proxy coach API calls to the backend (npm run server). When the backend
+    // isn't running, the frontend falls back to its offline rule engine.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+    },
   },
 })

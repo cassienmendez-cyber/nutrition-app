@@ -9,3 +9,6 @@ yarn-debug.log*
 yarn-error.log*
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+
+# local env (API keys)
+.env

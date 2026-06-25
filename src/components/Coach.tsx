@@ -1,34 +1,53 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp, newId } from '../store/AppContext'
-import {
-  weeklyInsights,
-  weeklyWins,
-  weeklyReviewNarrative,
-  respondToCheckIn,
-} from '../lib/coach'
+import { weeklyInsights, weeklyWins } from '../lib/coach'
 import { pregnancyPrepScore } from '../lib/scores'
 import { buildGroceryPlan, type GroceryPlan } from '../lib/grocery'
 import { lastNDays } from '../lib/dates'
+import { askCoach, getWeeklyReview } from '../lib/api'
 import { Ring } from './Ring'
 
 export function Coach() {
   const { state, todayLog, addCheckIn } = useApp()
   const [text, setText] = useState('')
   const [listening, setListening] = useState(false)
+  const [sending, setSending] = useState(false)
   const [budget, setBudget] = useState(120)
   const [plan, setPlan] = useState<GroceryPlan | null>(null)
+  const [review, setReview] = useState('')
+  const [reviewSource, setReviewSource] = useState<'claude' | 'offline'>('offline')
+  const [reviewLoading, setReviewLoading] = useState(true)
 
   const week = lastNDays(7).map((d) => state.days[d]).filter(Boolean)
   const { score, pillars } = pregnancyPrepScore(week, state.profile)
   const insights = weeklyInsights(state)
   const wins = weeklyWins(state)
-  const review = weeklyReviewNarrative(state)
 
-  function send() {
-    if (!text.trim()) return
-    const reply = respondToCheckIn(text)
-    addCheckIn({ id: newId(), text: text.trim(), reply, at: Date.now() })
+  // Fetch the weekly review (from Claude when the backend is live, otherwise the
+  // local narrative). Runs once on mount.
+  useEffect(() => {
+    let alive = true
+    setReviewLoading(true)
+    getWeeklyReview(state).then((r) => {
+      if (!alive) return
+      setReview(r.reply)
+      setReviewSource(r.source)
+      setReviewLoading(false)
+    })
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function send() {
+    if (!text.trim() || sending) return
+    const yours = text.trim()
     setText('')
+    setSending(true)
+    const { reply } = await askCoach(yours, state)
+    addCheckIn({ id: newId(), text: yours, reply, at: Date.now() })
+    setSending(false)
   }
 
   // A friendly stand-in for true voice capture. If the browser supports the
@@ -71,10 +90,12 @@ export function Coach() {
           <button className="btn secondary" onClick={toggleVoice}>
             {listening ? '🎙 Listening…' : '🎙 Speak'}
           </button>
-          <button className="btn" onClick={send}>Send to coach</button>
+          <button className="btn" onClick={send} disabled={sending}>
+            {sending ? 'Thinking…' : 'Send to coach'}
+          </button>
         </div>
 
-        {todayLog.checkIns.length > 0 && (
+        {(todayLog.checkIns.length > 0 || sending) && (
           <div style={{ marginTop: 16 }}>
             {todayLog.checkIns.map((c) => (
               <div key={c.id}>
@@ -82,16 +103,22 @@ export function Coach() {
                 <div className="coach-msg bloom">🌱 {c.reply}</div>
               </div>
             ))}
+            {sending && <div className="coach-msg bloom muted">🌱 thinking it through with you…</div>}
           </div>
         )}
       </div>
 
       {/* Weekly AI review */}
       <div className="card">
-        <div className="card-title">Sunday review</div>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="card-title" style={{ marginBottom: 0 }}>Sunday review</div>
+          {reviewSource === 'claude' && <span className="badge good">✨ Claude</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', margin: '12px 0' }}>
           <Ring value={score} size={104} stroke={10} caption="Prep score" />
-          <p className="soft" style={{ margin: 0, fontSize: 14 }}>{review}</p>
+          <p className="soft" style={{ margin: 0, fontSize: 14 }}>
+            {reviewLoading ? 'Reflecting on your week…' : review}
+          </p>
         </div>
         <div className="divider" />
         <div className="card-title">Pregnancy preparation pillars</div>

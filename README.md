@@ -58,39 +58,61 @@ for pregnancy — instead of yelling *"You have 237 calories left."*
 - **Local-first** — all data lives in `localStorage`; nothing leaves the device.
   The app ships with two weeks of demo history so every screen feels alive on
   first open.
-- **Transparent "AI"** — the coach, pattern detection, scoring, and the
-  exercise/grocery engines are a readable rule engine in [`src/lib/`](src/lib/),
-  so the experience is fully functional offline and the compassionate *voice*
-  stays consistent. These are the natural seams where a real Claude API call
-  would slot in later.
+- **Live Claude coach, with an offline fallback** — the conversational check-in
+  and the Sunday review call a small backend ([`server/index.js`](server/index.js))
+  that talks to Claude (`claude-opus-4-8`) with a compassion-first system prompt.
+  The API key stays server-side, never in the browser. If the backend is down or
+  has no key, the app **transparently falls back** to a readable rule engine in
+  [`src/lib/coach.ts`](src/lib/coach.ts), so it's always fully functional. The
+  Settings screen shows which mode you're in.
+- **Reminder notifications** — gentle, opt-in nudges for your prenatal, water,
+  and an evening check-in (no streaks, no nagging), via the Notifications API and
+  a service worker. They fire while the app is open; install it to your home
+  screen for the best experience.
+- **Your data, yours** — one-tap JSON backup/restore and a CSV export of your
+  daily building blocks. Nothing is uploaded.
 
 ### Project layout
 
 ```
+server/         Express backend — the Claude-powered coach & weekly review
 src/
-  lib/          domain logic — cycle math, scores, exercise engine, coach, grocery
+  lib/          domain logic — cycle math, scores, exercise engine, coach,
+                grocery, api (backend client + fallback), notifications, export
   store/        React context + reducer, localStorage persistence, demo seed data
-  components/   Dashboard, Exercise, Nutrition, Fertility, Coach, BadDay, …
+  components/   Dashboard, Exercise, Nutrition, Fertility, Coach, BadDay, Settings…
   styles/       one calm global stylesheet (sage / clay / cream)
+public/sw.js    service worker (reminder notifications + installable PWA)
 ```
 
 ## Run it
 
 ```bash
 npm install
-npm run dev      # → http://localhost:5173
+npm run dev      # frontend only → http://localhost:5173 (coach uses offline engine)
 ```
+
+To enable the **live Claude coach**, add a key and run both processes:
+
+```bash
+cp .env.example .env        # then set ANTHROPIC_API_KEY=sk-ant-...
+npm run dev:all             # frontend + backend together
+```
+
+Vite proxies `/api/*` to the backend on port 8787. Without a key (or without the
+backend), everything still works — the coach just uses its offline engine.
 
 Other scripts:
 
 ```bash
+npm run server   # backend only (node, reads .env if present)
 npm run build    # type-check + production build
 npm run preview  # serve the production build
 npm run lint     # type-check only (tsc --noEmit)
 ```
 
-To start fresh (clear the demo data), clear the `bloom.state.v1` key in your
-browser's localStorage.
+To start fresh, use **Settings → Reset** (or clear the `bloom.*` keys in
+localStorage).
 
 ---
 
