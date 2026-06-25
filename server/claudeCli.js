@@ -20,7 +20,9 @@ const BIN = process.env.CLAUDE_BIN || 'claude'
 
 export function claudeCliEnabled() {
   const m = (process.env.COACH_MODE || '').toLowerCase()
-  return m === 'cli' || m === 'subscription'
+  if (m === 'cli' || m === 'subscription') return true
+  // Cross-platform convenience: `npm run coach` passes --subscription.
+  return process.argv.includes('--subscription') || process.argv.includes('--coach')
 }
 
 // A throwaway empty working directory, so the CLI doesn't pick up a CLAUDE.md

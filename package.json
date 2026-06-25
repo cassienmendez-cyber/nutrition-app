@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "server": "node --env-file-if-exists=.env server/index.js",
+    "coach": "npm run build && node --env-file-if-exists=.env server/index.js --subscription",
     "vapid": "node server/gen-vapid.js",
     "dev:all": "concurrently -n web,api -c green,cyan \"npm run dev\" \"npm run server\"",
     "build": "tsc -b && vite build",

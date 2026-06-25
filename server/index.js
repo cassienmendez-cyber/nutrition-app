@@ -1,5 +1,7 @@
 import express from 'express'
 import cors from 'cors'
+import fs from 'node:fs'
+import path from 'node:path'
 import Anthropic from '@anthropic-ai/sdk'
 import { mountPush, pushEnabled } from './push.js'
 import { claudeCliEnabled, runClaudeCli } from './claudeCli.js'
@@ -195,7 +197,21 @@ app.post('/api/review', rateLimit, requireAuth, async (req, res) => {
   }
 })
 
+// Serve the built app from the same origin (so it works on a phone with no CORS
+// or API-base config — one URL gives you both the app and /api). Run `npm run
+// build` first; if dist/ is absent we just skip this and only expose the API.
+const DIST = path.join(process.cwd(), 'dist')
+const servingApp = fs.existsSync(path.join(DIST, 'index.html'))
+if (servingApp) {
+  app.use(express.static(DIST))
+  // SPA fallback for any non-API route.
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next()
+    res.sendFile(path.join(DIST, 'index.html'))
+  })
+}
+
 app.listen(PORT, () => {
   const coach = SUBSCRIPTION ? 'subscription (Claude Code CLI)' : client ? 'API key' : 'DISABLED (offline fallback)'
-  console.log(`🌱 Bloom backend on :${PORT} — Coach: ${coach} · Push ${pushOn ? 'enabled' : 'DISABLED (set VAPID keys)'}`)
+  console.log(`🌱 Bloom backend on :${PORT} — Coach: ${coach} · Push ${pushOn ? 'enabled' : 'DISABLED (set VAPID keys)'} · App ${servingApp ? `served at http://localhost:${PORT}` : 'not built (run npm run build)'}`)
 })

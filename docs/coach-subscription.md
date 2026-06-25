@@ -17,14 +17,41 @@ reviews come out of the plan you already pay for, not API credits.
    /login            # choose "Claude account with subscription"
    ```
    (Or run `claude` once and follow the login prompt.)
-3. Turn on subscription mode for the backend and start it:
+3. Build the app and start the backend in subscription mode — one command:
    ```bash
-   COACH_MODE=subscription npm run server
+   npm run coach
    ```
-   On startup you'll see: `Coach: subscription (Claude Code CLI)`.
+   This builds the app, then starts the server with `--subscription`. It serves
+   **both** the app and `/api` on one origin (default http://localhost:8787), so
+   there's no CORS or API-base setup. On startup you'll see:
+   `Coach: subscription (Claude Code CLI) · App served at http://localhost:8787`.
 
-That's it. In the app, **Settings → AI coach** will read
-**"Live Claude coach (your subscription)"**.
+That's it. Open that URL, and in **Settings → AI coach** you'll see
+**"Live Claude coach (your subscription) — no API charges"**.
+
+> Prefer the env var? `COACH_MODE=subscription npm run server` works too
+> (the `--subscription` flag is just a cross-platform convenience).
+
+## Using it on your phone
+
+The **Claude phone app cannot power the coach** — it's separate from the Claude
+Code CLI. The backend has to run on a computer where you've run `claude /login`
+(your laptop or a home server). To reach it from your phone, expose that one
+URL with a free tunnel, then open the tunnel URL on your phone and **Add to Home
+Screen**:
+
+```bash
+# 1) start the app + coach (serves everything on :8787)
+npm run coach
+
+# 2) in another terminal, expose it for free (pick one):
+npx cloudflared tunnel --url http://localhost:8787      # Cloudflare (no account)
+# or Tailscale: `tailscale serve 8787` if your phone is on your tailnet
+```
+
+Open the printed https URL on your phone. Because the server serves the app and
+`/api` together, the coach (your subscription) and push all work through that
+single URL. Keep the laptop/server awake while you use it.
 
 ## How it picks a path
 
