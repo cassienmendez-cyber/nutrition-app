@@ -46,11 +46,13 @@ export function Creature({
   level,
   size = 110,
   happy = false,
+  prestige = 0,
 }: {
   species: PetSpecies
   level: number
   size?: number
   happy?: boolean
+  prestige?: number
 }) {
   const idx = Math.max(0, Math.min(STAGES.length - 1, level))
   const st = STAGES[idx]
@@ -138,6 +140,10 @@ export function Creature({
     }
     // back spikes
     front.push(<path key="spikes" d={`M${cx - 8} ${topY + 10} l4 ${-7 * f} l4 ${7 * f} l4 ${-7 * f} l4 ${7 * f}`} stroke={accent} strokeWidth={2.5} fill="none" strokeLinejoin="round" />)
+    // a curling tail that grows with the stage
+    behind.push(
+      <path key="tail" d={`M${cx + rx * 0.8} ${cy + ry * 0.6} q${22 * f} ${4 * f} ${20 * f} ${-16 * f} q${-2} ${10 * f} ${-12 * f} ${10 * f}`} fill={body} />,
+    )
   } else if (species === 'bird') {
     // crest feathers + beak; wings from adolescent
     const ct = topY + 4
@@ -149,6 +155,14 @@ export function Creature({
       behind.push(
         <ellipse key="bw1" cx={cx - rx * 0.95} cy={wy} rx={10 * f} ry={16 * f} fill={feat} transform={`rotate(18 ${cx - rx * 0.95} ${wy})`} />,
         <ellipse key="bw2" cx={cx + rx * 0.95} cy={wy} rx={10 * f} ry={16 * f} fill={feat} transform={`rotate(-18 ${cx + rx * 0.95} ${wy})`} />,
+      )
+      // tail feathers fan out at the back
+      behind.push(
+        <g key="btail">
+          {[-16, 0, 16].map((a) => (
+            <ellipse key={a} cx={cx} cy={cy + ry * 0.9} rx={4 * f} ry={13 * f} fill={feat} transform={`rotate(${a} ${cx} ${cy + ry * 0.9})`} />
+          ))}
+        </g>,
       )
     }
   } else if (species === 'frog') {
@@ -216,6 +230,12 @@ export function Creature({
       {eyes}
       {mouth}
       {elderBits}
+      {prestige > 0 && (
+        <g aria-hidden>
+          <path d={`M${cx - 11} ${topY - 3} l3 -8 l4 5 l4 -8 l4 8 l4 -5 l3 8 Z`} fill="#e9c44a" stroke="#caa42f" strokeWidth={0.8} strokeLinejoin="round" />
+          {prestige > 1 && <text x={cx + 16} y={topY - 4} fontSize={11} fontWeight={700} fill="#caa42f">×{prestige}</text>}
+        </g>
+      )}
     </svg>
   )
 }

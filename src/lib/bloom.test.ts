@@ -7,7 +7,7 @@ import { isActiveDay, weekDays, weeklyInsights, streakFreeMomentum, respondToChe
 import { buildGroceryPlan, suggestMeals } from './grocery'
 import { computeTrophy, trophyStats, closestTrophies, TROPHIES } from './achievements'
 import { pointsForDay, totalEarnedPoints, availablePoints } from './points'
-import { petLevelInfo, settlePet, applyFeed, makeDefaultPet, SHOP, THRESHOLDS, MAX_LEVEL } from './pet'
+import { petLevelInfo, settlePet, applyFeed, makeDefaultPet, makeRebornPet, effectiveGrowth, SHOP, THRESHOLDS, MAX_LEVEL } from './pet'
 import type { AppState, DayLog, EatingReason, Meal, MealSlot, Pet, Profile } from '../types'
 
 // --- fixtures --------------------------------------------------------------
@@ -44,8 +44,19 @@ const profile: Profile = {
 function stateWith(days: DayLog[], pet?: Pet): AppState {
   const map: Record<string, DayLog> = {}
   for (const d of days) map[d.date] = d
-  return { onboarded: true, profile, days: map, pet: pet ?? makeDefaultPet(0) }
+  return {
+    onboarded: true,
+    profile,
+    days: map,
+    pet: pet ?? makeDefaultPet(0),
+    habitat: { background: 'pond', owned: ['pond'] },
+    collection: [],
+  }
 }
+
+const item = (growth: number, extra: Partial<import('./pet').ShopItem> = {}): import('./pet').ShopItem => ({
+  id: 'x', emoji: '✨', name: 'x', desc: '', cost: 0, growth, fullness: 0, hydration: 0, tag: 'wholesome', ...extra,
+})
 
 // --- dates -----------------------------------------------------------------
 
@@ -308,38 +319,63 @@ describe('pet', () => {
   })
 
   it('feeding fills the current stage pool and never overfills meters past 100', () => {
+    // Keep happiness < 60 (no care bonus) so the math is the raw growth.
     const fish = SHOP.find((i) => i.id === 'fish')!
-    const fed = applyFeed({ ...makeDefaultPet(0), fullness: 90 }, fish, 0)
-    expect(fed.levelPoints).toBe(fish.growth) // still Baby, pool grew
+    const fed = applyFeed({ ...makeDefaultPet(0), fullness: 90, hydration: 10 }, fish, 0)
+    expect(fed.levelPoints).toBe(fish.growth)
     expect(fed.level).toBe(0)
     expect(fed.spent).toBe(fish.cost)
-    expect(fed.fullness).toBeLessThanOrEqual(100)
+    expect(fed.fullness).toBe(100) // 90 + 32, clamped
   })
 
   it('evolves when the per-stage pool is met, carrying the remainder', () => {
-    // Baby needs 100; a 130-growth feed evolves to Toddler with 30 carried over.
-    const big = { id: 'x', emoji: '✨', name: 'x', desc: 'x', cost: 100, growth: 130, fullness: 0, hydration: 0 }
-    const fed = applyFeed(makeDefaultPet(0), big, 0)
+    const fed = applyFeed(makeDefaultPet(0), item(130, { cost: 100 }), 0)
     expect(fed.level).toBe(1)
     expect(petLevelInfo(fed).name).toBe('Toddler')
     expect(fed.levelPoints).toBe(30)
   })
 
   it('each stage needs its OWN pool — not a running total', () => {
-    // 100 reaches Toddler (pool resets); the next stage still needs its full 150.
-    const toToddler = { id: 'a', emoji: '✨', name: 'a', desc: '', cost: 0, growth: 100, fullness: 0, hydration: 0 }
-    const fed = applyFeed(makeDefaultPet(0), toToddler, 0)
+    const fed = applyFeed(makeDefaultPet(0), item(100), 0)
     expect(fed.level).toBe(1)
     expect(fed.levelPoints).toBe(0)
     expect(petLevelInfo(fed).needed).toBe(150) // toddler→adolescent
   })
 
   it('caps at Elder and never exceeds the max level', () => {
-    const huge = { id: 'h', emoji: '✨', name: 'h', desc: '', cost: 0, growth: 99999, fullness: 0, hydration: 0 }
-    const fed = applyFeed(makeDefaultPet(0), huge, 0)
+    const fed = applyFeed(makeDefaultPet(0), item(99999), 0)
     expect(fed.level).toBe(MAX_LEVEL)
     expect(petLevelInfo(fed).name).toBe('Elder')
     expect(petLevelInfo(fed).progress).toBe(1)
+  })
+
+  it('healthier food grows faster per point spent than a treat', () => {
+    const fish = SHOP.find((i) => i.id === 'fish')! // wholesome
+    const cake = SHOP.find((i) => i.id === 'cake')! // treat
+    expect(fish.growth / fish.cost).toBeGreaterThan(cake.growth / cake.cost)
+  })
+
+  it('a well-cared-for (happy) pet grows faster than a neglected one — gently', () => {
+    const happy = applyFeed({ ...makeDefaultPet(0), fullness: 100, hydration: 100 }, item(40), 0)
+    const neglected = applyFeed({ ...makeDefaultPet(0), fullness: 0, hydration: 0 }, item(40), 0)
+    expect(happy.levelPoints).toBeGreaterThan(neglected.levelPoints) // care bonus
+    expect(neglected.levelPoints).toBeGreaterThan(0) // but neglected still grows
+  })
+
+  it('prestige adds a permanent growth boost', () => {
+    const base = { ...makeDefaultPet(0), fullness: 0, hydration: 0 } // no care bonus
+    const proud = { ...base, prestige: 2 }
+    expect(effectiveGrowth(proud, item(100))).toBeGreaterThan(effectiveGrowth(base, item(100)))
+  })
+
+  it('prestige rebirth keeps points spent and the new baby carries a higher prestige', () => {
+    const elder = { ...makeDefaultPet(0), level: MAX_LEVEL, spent: 500, prestige: 1 }
+    const reborn = makeRebornPet(elder, 'dragon', 'Spark', 0)
+    expect(reborn.level).toBe(0)
+    expect(reborn.spent).toBe(500)
+    expect(reborn.prestige).toBe(2)
+    expect(reborn.species).toBe('dragon')
+    expect(reborn.name).toBe('Spark')
   })
 
   it('decays gently over time but is capped and never goes negative', () => {

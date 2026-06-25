@@ -13,15 +13,17 @@ import {
 import { exportJSON, exportCSV, importJSON } from '../lib/exportData'
 import { coachStatus } from '../lib/api'
 import { SPECIES, petLevelInfo, LEVELS } from '../lib/pet'
+import { isSoundOn, setSoundOn, playFeed } from '../lib/sound'
 import { Creature } from './Creature'
 
 export function Settings({ onClose }: { onClose: () => void }) {
   const { state, importState, reset, setProfile, setPet } = useApp()
-  const { profile, pet } = state
+  const { profile, pet, collection } = state
   const lvl = petLevelInfo(pet)
   const [reminders, setReminders] = useState<ReminderSettings>(loadReminders())
   const [perm, setPerm] = useState(permission())
   const [claude, setClaude] = useState<boolean | null>(null)
+  const [sound, setSound] = useState(isSoundOn())
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
@@ -126,6 +128,42 @@ export function Settings({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* Hall of Companions — pets you raised to Elder and graduated */}
+          {collection.length > 0 && (
+            <div className="card">
+              <div className="card-title">Hall of companions</div>
+              <p className="soft" style={{ marginTop: 0, fontSize: 13.5 }}>
+                The companions you raised all the way to Elder and graduated. 🎓
+              </p>
+              <div className="hall-row">
+                {collection.map((g) => (
+                  <div key={g.id} className="hall-item">
+                    <Creature species={g.species} level={5} size={48} prestige={g.prestige} />
+                    <span>{g.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sound */}
+          <div className="card">
+            <div className="card-title">Sound</div>
+            <div className="stat-row" style={{ borderBottom: 'none' }}>
+              <span className="emoji">🔊</span>
+              <div className="body">
+                <div className="name">Sound effects</div>
+                <div className="detail">Soft chimes when you feed and evolve</div>
+              </div>
+              <button
+                className={`chip ${sound ? 'selected' : ''}`}
+                onClick={() => { const v = !sound; setSound(v); setSoundOn(v); if (v) playFeed() }}
+              >
+                {sound ? 'On' : 'Off'}
+              </button>
+            </div>
+          </div>
+
           {/* Coach status */}
           <div className="card">
             <div className="card-title">AI coach</div>
@@ -192,7 +230,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
 
-                <div className="stat-row" style={{ borderBottom: 'none' }}>
+                <div className="stat-row">
                   <span className="emoji">🌙</span>
                   <div className="body"><div className="name">Evening check-in</div></div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -201,6 +239,14 @@ export function Settings({ onClose }: { onClose: () => void }) {
                       {reminders.checkIn ? '✓' : 'off'}
                     </button>
                   </div>
+                </div>
+
+                <div className="stat-row" style={{ borderBottom: 'none' }}>
+                  <span className="emoji">🐸</span>
+                  <div className="body"><div className="name">Companion needs</div><div className="detail">when meters run low</div></div>
+                  <button className={`chip ${reminders.petCare ? 'selected' : ''}`} onClick={() => update({ petCare: !reminders.petCare })}>
+                    {reminders.petCare ? '✓' : 'off'}
+                  </button>
                 </div>
 
                 <button className="btn ghost small" style={{ marginTop: 12 }} onClick={() => showNotification('🌱 Test reminder', 'This is how a Bloom nudge looks.')}>

@@ -12,6 +12,7 @@ import { Settings } from './components/Settings'
 import { loadReminders, registerServiceWorker, startReminderScheduler } from './lib/notifications'
 import { detectNewTrophy, TIER_META, type EarnedEvent } from './lib/achievements'
 import { detectPetLevelUp } from './lib/pet'
+import { playEvolve } from './lib/sound'
 import { Creature } from './components/Creature'
 
 type Tab = 'today' | 'move' | 'eat' | 'cycle' | 'trends' | 'coach'
@@ -54,6 +55,7 @@ export default function App() {
     const stageName = detectPetLevelUp(state.pet.level)
     if (stageName) {
       setGrewUp(stageName)
+      playEvolve()
       const t = setTimeout(() => setGrewUp(null), 6000)
       return () => clearTimeout(t)
     }

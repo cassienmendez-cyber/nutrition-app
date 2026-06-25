@@ -79,6 +79,8 @@ export function seedState(): AppState {
       ttc: true,
     },
     pet: makeDefaultPet(Date.now()),
+    habitat: { background: 'pond', owned: ['pond'] },
+    collection: [],
     days: buildDays(),
   }
 }
@@ -97,6 +99,8 @@ export function emptyState(): AppState {
       ttc: true,
     },
     pet: makeDefaultPet(Date.now()),
+    habitat: { background: 'pond', owned: ['pond'] },
+    collection: [],
     days: {
       [today()]: { date: today(), pain: [], meals: [], checkIns: [], alcohol: false },
     },

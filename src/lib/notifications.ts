@@ -14,6 +14,7 @@ export interface ReminderSettings {
   waterIntervalHours: number
   checkIn: boolean
   checkInTime: string // 'HH:MM'
+  petCare: boolean // nudge when the companion's meters run low
 }
 
 const KEY = 'bloom.reminders.v1'
@@ -27,6 +28,7 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
   waterIntervalHours: 3,
   checkIn: true,
   checkInTime: '20:00',
+  petCare: true,
 }
 
 export function loadReminders(): ReminderSettings {
@@ -119,6 +121,30 @@ function hhmmNow(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+// Read the persisted pet so the scheduler can nudge when its meters run low.
+import { settlePet } from './pet'
+const PETCARE_KEY = 'bloom.petcare.last.v1'
+
+function readPet(): { name: string; fullness: number; hydration: number; lastTick: number } | null {
+  try {
+    const raw = localStorage.getItem('bloom.state.v1')
+    if (!raw) return null
+    const s = JSON.parse(raw)
+    return s?.pet ?? null
+  } catch {
+    return null
+  }
+}
+
+function petCareFiredRecently(ms: number): boolean {
+  try {
+    const last = Number(localStorage.getItem(PETCARE_KEY) || 0)
+    return Date.now() - last < ms
+  } catch {
+    return false
+  }
+}
+
 function tick() {
   const r = loadReminders()
   if (!r.enabled || permission() !== 'granted') return
@@ -141,6 +167,22 @@ function tick() {
     if (now.endsWith(':00') && hour % r.waterIntervalHours === 0 && !firedToday(slot)) {
       markFired(slot)
       showNotification('💧 Water break', 'A glass of water counts. Small kind choices add up.')
+    }
+  }
+
+  // Companion needs: nudge at most once every 4 hours, daytime only.
+  if (r.petCare && hour >= 8 && hour <= 21 && !petCareFiredRecently(4 * 3_600_000)) {
+    const pet = readPet()
+    if (pet) {
+      const s = settlePet({ ...pet } as Parameters<typeof settlePet>[0], Date.now())
+      if (s.fullness < 22 || s.hydration < 22) {
+        try {
+          localStorage.setItem(PETCARE_KEY, String(Date.now()))
+        } catch {
+          /* ignore */
+        }
+        showNotification(`🥺 ${pet.name} needs you`, 'A snack or some water from the Pantry would help them grow.')
+      }
     }
   }
 }

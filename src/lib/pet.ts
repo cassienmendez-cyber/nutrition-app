@@ -77,33 +77,57 @@ export function mood(pet: Pet): { emoji: string; text: string } {
 
 // --- Shop ------------------------------------------------------------------
 
+export type FoodTag = 'wholesome' | 'balanced' | 'treat'
+
 export interface ShopItem {
   id: string
   emoji: string
   name: string
   desc: string
   cost: number
-  growth: number // points added to the current stage's pool
+  growth: number // base points added to the current stage's pool
   fullness: number
   hydration: number
+  tag: FoodTag
 }
 
+// Healthier choices grow the companion FASTER (high growth-per-point), mirroring
+// real nutrition. Treats are still welcome — they bring fullness and happiness —
+// they just grow it more slowly. No food is "bad," some just nourish more.
 export const SHOP: ShopItem[] = [
-  { id: 'water', emoji: '💧', name: 'Fresh water', desc: 'Quenches thirst', cost: 8, growth: 8, fullness: 0, hydration: 30 },
-  { id: 'berries', emoji: '🫐', name: 'Berries', desc: 'A sweet little snack', cost: 12, growth: 12, fullness: 16, hydration: 4 },
-  { id: 'greens', emoji: '🥬', name: 'Leafy greens', desc: 'Nourishing and fresh', cost: 22, growth: 20, fullness: 22, hydration: 6 },
-  { id: 'fish', emoji: '🐟', name: 'Fish', desc: 'Hearty protein — big growth', cost: 34, growth: 30, fullness: 34, hydration: 4 },
-  { id: 'soup', emoji: '🍲', name: 'Warm soup', desc: 'Comfort in a bowl', cost: 28, growth: 22, fullness: 26, hydration: 16 },
-  { id: 'feast', emoji: '🍱', name: 'Feast', desc: 'A full, joyful spread', cost: 70, growth: 60, fullness: 60, hydration: 20 },
+  { id: 'water', emoji: '💧', name: 'Fresh water', desc: 'Pure hydration', cost: 8, growth: 11, fullness: 0, hydration: 32, tag: 'wholesome' },
+  { id: 'berries', emoji: '🫐', name: 'Berries', desc: 'Vitamin-rich snack', cost: 12, growth: 16, fullness: 14, hydration: 4, tag: 'wholesome' },
+  { id: 'greens', emoji: '🥬', name: 'Leafy greens', desc: 'Folate & fibre', cost: 20, growth: 26, fullness: 20, hydration: 6, tag: 'wholesome' },
+  { id: 'fish', emoji: '🐟', name: 'Fish', desc: 'Lean protein — best growth', cost: 32, growth: 36, fullness: 32, hydration: 4, tag: 'wholesome' },
+  { id: 'soup', emoji: '🍲', name: 'Warm soup', desc: 'Balanced & comforting', cost: 26, growth: 22, fullness: 26, hydration: 16, tag: 'balanced' },
+  { id: 'cookie', emoji: '🍪', name: 'Cookie', desc: 'A little happy treat', cost: 10, growth: 5, fullness: 18, hydration: 0, tag: 'treat' },
+  { id: 'cake', emoji: '🍰', name: 'Cake', desc: 'Celebration food!', cost: 22, growth: 8, fullness: 36, hydration: 2, tag: 'treat' },
+  { id: 'feast', emoji: '🍱', name: 'Feast', desc: 'A full, joyful spread', cost: 66, growth: 54, fullness: 58, hydration: 20, tag: 'balanced' },
 ]
 
-// Feed an item: settle decay, add its growth to the current stage's pool (which
-// may cross one or more level thresholds, carrying the remainder), top up the
-// meters, and charge the cost.
+// Growth multiplier at feed time: a well-cared-for (happy) companion grows
+// faster (so the meters genuinely matter), and prestige adds a small permanent
+// boost — but a neglected pet still grows, just slower. Never punishing.
+export function growthMultiplier(pet: Pet, happyAtFeed: number): number {
+  let m = 1
+  if (happyAtFeed >= 60) m += 0.25 // "care bonus"
+  m += (pet.prestige ?? 0) * 0.05 // prestige bonus
+  return m
+}
+
+// What a feed would actually add to the growth pool, given care + prestige.
+export function effectiveGrowth(pet: Pet, item: ShopItem): number {
+  return Math.round(item.growth * growthMultiplier(pet, happiness(pet)))
+}
+
+// Feed an item: settle decay, add its (bonus-adjusted) growth to the current
+// stage's pool (which may cross level thresholds, carrying the remainder), top
+// up the meters, and charge the cost.
 export function applyFeed(pet: Pet, item: ShopItem, now: number): Pet {
   const settled = settlePet(pet, now)
+  const gain = Math.round(item.growth * growthMultiplier(settled, happiness(settled)))
   let level = settled.level
-  let pool = settled.levelPoints + item.growth
+  let pool = settled.levelPoints + gain
   while (level < MAX_LEVEL && pool >= THRESHOLDS[level]) {
     pool -= THRESHOLDS[level]
     level += 1
@@ -121,7 +145,24 @@ export function applyFeed(pet: Pet, item: ShopItem, now: number): Pet {
 }
 
 export function makeDefaultPet(now: number): Pet {
-  return { name: 'Pip', species: 'frog', level: 0, levelPoints: 0, spent: 0, fullness: 55, hydration: 55, lastTick: now }
+  return { name: 'Pip', species: 'frog', level: 0, levelPoints: 0, spent: 0, fullness: 55, hydration: 55, lastTick: now, prestige: 0 }
+}
+
+// Graduate an Elder and start a fresh baby (Prestige). Points already earned
+// stay earned (spent carries over so the balance is unchanged); the new baby
+// carries a higher prestige.
+export function makeRebornPet(prev: Pet, species: PetSpecies, name: string, now: number): Pet {
+  return {
+    name: name.trim() || 'Pip',
+    species,
+    level: 0,
+    levelPoints: 0,
+    spent: prev.spent,
+    fullness: 60,
+    hydration: 60,
+    lastTick: now,
+    prestige: (prev.prestige ?? 0) + 1,
+  }
 }
 
 // Detect when the creature evolves to a new stage, for a celebration toast.

@@ -35,11 +35,21 @@ for pregnancy — instead of yelling *"You have 237 calories left."*
   through six life stages — **Baby → Toddler → Adolescent → Young Adult → Adult
   → Elder**. Each stage needs its *own* fresh pool of points (100 → 150 → 200 →
   300 → 500), not a running total. Pick and name one of **five species** (Sprout,
-  Frog, Finn, Dragon, Birdie), each drawn as a custom SVG that grows limbs and a
-  signature feature and earns spectacles as an Elder. Feeding plays a cute care
-  animation (bounce, hearts, sparkles, happy face + a haptic buzz), and there's
-  a celebration each time it evolves. It only ever grows and never dies — at
-  most it gets a little sleepy until you feed it. No guilt, ever.
+  Frog, Finn, Dragon, Birdie), each a custom SVG that grows limbs and a signature
+  feature (leaves / fins / wings / horns / crest) and earns spectacles + a golden
+  aura as an Elder.
+  - **Healthier food grows it faster** — wholesome foods give the most growth per
+    point; treats are still welcome (they bring happiness), they just grow it
+    more slowly. A **well-fed, happy** companion grows faster still (a gentle care
+    bonus), and a free **prenatal vitamin** appears in the Pantry the day you take
+    yours.
+  - **Decorate the habitat** — buy backgrounds and props with points.
+  - **Prestige** — raise it all the way to Elder, then **graduate** it to your
+    **Hall of Companions** and welcome a new baby that wears a prestige crown ⭐
+    and grows a little faster forever (endless play).
+  - **Cute care animations** on every feed (bounce, hearts, sparkles, happy face,
+    haptic buzz + optional sound), an evolution celebration, and gentle "your
+    companion needs you" nudges. It only ever grows and never dies. No guilt, ever.
 - **Dashboard** — your companion front and centre, today's points and how you
   earned them, plus Recovery / Nutrition / Movement / Water / Sleep / Stress and
   your Cycle Day. No calories.
@@ -100,7 +110,8 @@ server/         Express backend — the Claude-powered coach & weekly review
 src/
   lib/          domain logic — cycle math, scores, exercise engine, coach,
                 achievements (trophies), points (economy), pet (companion engine),
-                grocery, api (backend client + fallback), notifications, export
+                cosmetics (decor), sound, grocery, api (backend + fallback),
+                notifications, export
   store/        React context + reducer, localStorage persistence, demo seed data
   components/   Dashboard, PetHabitat, Creature (evolving SVG), Shop, Exercise,
                 Nutrition, Fertility, Trends/Trophies, Coach, BadDay, Settings…

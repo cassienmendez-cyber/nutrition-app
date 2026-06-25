@@ -6,9 +6,9 @@ import {
   useReducer,
   type ReactNode,
 } from 'react'
-import type { AppState, CheckIn, DayLog, ISODate, Meal, Pet, Profile } from '../types'
+import type { AppState, CheckIn, DayLog, Habitat, ISODate, Meal, Pet, PetSpecies, Profile } from '../types'
 import { today } from '../lib/dates'
-import { makeDefaultPet, applyFeed, THRESHOLDS, MAX_LEVEL, type ShopItem } from '../lib/pet'
+import { makeDefaultPet, makeRebornPet, applyFeed, THRESHOLDS, MAX_LEVEL, type ShopItem } from '../lib/pet'
 import { availablePoints } from '../lib/points'
 import { emptyState, seedState } from './seed'
 
@@ -50,7 +50,13 @@ function migrate(state: AppState): AppState {
   for (const [date, d] of Object.entries(state.days)) {
     days[date] = { ...d, date, pain: d.pain ?? [], meals: d.meals ?? [], checkIns: d.checkIns ?? [] }
   }
-  return { onboarded: state.onboarded ?? true, profile, pet: migratePet(state.pet), days }
+  const habitat: Habitat =
+    state.habitat && Array.isArray(state.habitat.owned)
+      ? { background: state.habitat.background || 'pond', owned: state.habitat.owned }
+      : { background: 'pond', owned: ['pond'] }
+  if (!habitat.owned.includes('pond')) habitat.owned = ['pond', ...habitat.owned]
+  const collection = Array.isArray(state.collection) ? state.collection : []
+  return { onboarded: state.onboarded ?? true, profile, pet: migratePet(state.pet), habitat, collection, days }
 }
 
 // Older pets used a single `growth` total and a larger species set. Convert to
@@ -72,6 +78,7 @@ function migratePet(raw: unknown): Pet {
     fullness: typeof old.fullness === 'number' ? old.fullness : base.fullness,
     hydration: typeof old.hydration === 'number' ? old.hydration : base.hydration,
     lastTick: typeof old.lastTick === 'number' ? old.lastTick : Date.now(),
+    prestige: typeof old.prestige === 'number' ? old.prestige : 0,
   }
   if (typeof old.level === 'number') {
     return { ...common, level: old.level, levelPoints: typeof old.levelPoints === 'number' ? old.levelPoints : 0 }
@@ -120,6 +127,9 @@ type Action =
   | { type: 'SET_PROFILE'; profile: Partial<Profile>; onboard?: boolean }
   | { type: 'SET_PET'; patch: Partial<Pet> }
   | { type: 'FEED'; item: ShopItem }
+  | { type: 'BUY_DECOR'; id: string; cost: number }
+  | { type: 'SET_BACKGROUND'; id: string }
+  | { type: 'PRESTIGE'; species: PetSpecies; name: string }
   | { type: 'IMPORT'; state: AppState }
   | { type: 'RESET'; demo: boolean }
 
@@ -169,6 +179,35 @@ function reducer(state: AppState, action: Action): AppState {
       if (availablePoints(state) < action.item.cost) return state
       return { ...state, pet: applyFeed(state.pet, action.item, Date.now()) }
     }
+    case 'BUY_DECOR': {
+      if (state.habitat.owned.includes(action.id)) return state
+      if (availablePoints(state) < action.cost) return state
+      return {
+        ...state,
+        pet: { ...state.pet, spent: state.pet.spent + action.cost },
+        habitat: { ...state.habitat, owned: [...state.habitat.owned, action.id] },
+      }
+    }
+    case 'SET_BACKGROUND': {
+      if (!state.habitat.owned.includes(action.id)) return state
+      return { ...state, habitat: { ...state.habitat, background: action.id } }
+    }
+    case 'PRESTIGE': {
+      // Only graduate a fully-grown (Elder) companion.
+      if (state.pet.level < MAX_LEVEL) return state
+      const graduate = {
+        id: newId(),
+        name: state.pet.name,
+        species: state.pet.species,
+        prestige: state.pet.prestige ?? 0,
+        at: Date.now(),
+      }
+      return {
+        ...state,
+        pet: makeRebornPet(state.pet, action.species, action.name, Date.now()),
+        collection: [graduate, ...state.collection],
+      }
+    }
     case 'IMPORT':
       return action.state
     case 'RESET':
@@ -188,6 +227,9 @@ interface Ctx {
   setProfile: (profile: Partial<Profile>, onboard?: boolean) => void
   setPet: (patch: Partial<Pet>) => void
   feed: (item: ShopItem) => void
+  buyDecor: (id: string, cost: number) => void
+  setBackground: (id: string) => void
+  prestige: (species: PetSpecies, name: string) => void
   importState: (state: AppState) => void
   reset: (demo: boolean) => void
 }
@@ -212,6 +254,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProfile: (profile, onboard) => dispatch({ type: 'SET_PROFILE', profile, onboard }),
       setPet: (patch) => dispatch({ type: 'SET_PET', patch }),
       feed: (item) => dispatch({ type: 'FEED', item }),
+      buyDecor: (id, cost) => dispatch({ type: 'BUY_DECOR', id, cost }),
+      setBackground: (id) => dispatch({ type: 'SET_BACKGROUND', id }),
+      prestige: (species, name) => dispatch({ type: 'PRESTIGE', species, name }),
       importState: (next) => dispatch({ type: 'IMPORT', state: next }),
       reset: (demo) => dispatch({ type: 'RESET', demo }),
     }

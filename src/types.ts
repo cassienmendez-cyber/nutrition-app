@@ -120,12 +120,30 @@ export interface Pet {
   fullness: number // 0–100
   hydration: number // 0–100
   lastTick: number // ms timestamp, for gentle decay between visits
+  prestige: number // times raised to Elder and reborn — endless progression
+}
+
+// Cosmetic habitat state — decorations bought with points.
+export interface Habitat {
+  background: string // active background id
+  owned: string[] // owned cosmetic ids (backgrounds + props)
+}
+
+// A companion you raised all the way to Elder and graduated (Prestige).
+export interface GraduatedPet {
+  id: string
+  name: string
+  species: PetSpecies
+  prestige: number
+  at: number
 }
 
 export interface AppState {
   profile: Profile
   days: Record<ISODate, DayLog>
   pet: Pet
+  habitat: Habitat
+  collection: GraduatedPet[]
   onboarded: boolean
 }
 
