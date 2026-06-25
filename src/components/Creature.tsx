@@ -155,20 +155,30 @@ export function Creature({
   } else if (species === 'frog' && lvl >= 3) {
     behind.push(<ellipse key="pad" cx={cx} cy={FLOOR + 3} rx={torsoRx * 1.6} ry={10} fill={c.accent} stroke={line} strokeWidth={2} opacity={0.5} />)
   } else if (isDog) {
-    // Bushy tail that fills out with age, sweeping down then up behind the hip.
-    const tx = cx + torsoRx * 0.78
-    const ty = torsoCy + torsoRy * 0.35
-    const ts = 0.7 + f * 0.5
+    // Low, bushy saber tail that HANGS DOWN behind the hip and fills out with
+    // age, with a dark tip — never sticking up like a fin.
+    const bx = cx + torsoRx * 0.62
+    const by = torsoBottom - torsoRy * 0.45
+    const ts = 0.9 + f * 0.4 // bushier with age
+    const tipY = Math.min(FLOOR - 4, by + 34 * ts)
+    const tipX = bx + 8 * ts
     behind.push(
       <path
         key="tail"
-        d={`M${tx} ${ty} q${20 * ts} ${4 * ts} ${24 * ts} ${-18 * ts} q${4 * ts} ${-16 * ts} ${-4 * ts} ${-24 * ts} q${3 * ts} ${14 * ts} ${-8 * ts} ${20 * ts} q${-9 * ts} ${5 * ts} ${-12 * ts} ${18 * ts} Z`}
+        d={`M${bx} ${by - 10 * ts} C${bx + 26 * ts} ${by - 4 * ts} ${tipX + 16 * ts} ${(by + tipY) / 2} ${tipX + 4} ${tipY} C${tipX} ${tipY + 6} ${tipX - 11 * ts} ${tipY + 2} ${tipX - 13 * ts} ${tipY - 8 * ts} C${bx + 4 * ts} ${(by + tipY) / 2 + 2 * ts} ${bx - 7 * ts} ${by + 6 * ts} ${bx} ${by - 10 * ts} Z`}
         fill={c.body}
         stroke={line}
         strokeWidth={LW}
         strokeLinejoin="round"
       />,
-      <path key="tailtip" d={`M${tx + 18 * ts} ${ty - 36 * ts} q${4 * ts} ${-8 * ts} ${-4 * ts} ${-14 * ts} q${3 * ts} ${10 * ts} ${-6 * ts} ${14 * ts} Z`} fill={c.accent} stroke={line} strokeWidth={2.2} strokeLinejoin="round" opacity={0.9} />,
+      <path
+        key="tailtip"
+        d={`M${tipX + 4} ${tipY} C${tipX} ${tipY + 6} ${tipX - 11 * ts} ${tipY + 2} ${tipX - 13 * ts} ${tipY - 8 * ts} C${tipX - 8 * ts} ${tipY - 15 * ts} ${tipX + 3} ${tipY - 13 * ts} ${tipX + 8 * ts} ${tipY - 6 * ts} C${tipX + 9 * ts} ${tipY - 1} ${tipX + 7} ${tipY + 2} ${tipX + 4} ${tipY} Z`}
+        fill={c.accent}
+        stroke={line}
+        strokeWidth={2.2}
+        strokeLinejoin="round"
+      />,
     )
   }
 
