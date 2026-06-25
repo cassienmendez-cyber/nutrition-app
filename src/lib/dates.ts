@@ -1,7 +1,13 @@
 import type { ISODate } from '../types'
 
 export function toISO(d: Date): ISODate {
-  return d.toISOString().slice(0, 10)
+  // Use LOCAL date components — not toISOString(), which is UTC and would roll
+  // the day over for anyone west of UTC (e.g. a New Yorker at 8pm EST would be
+  // logged to "tomorrow"). This adapts to EST/EDT automatically.
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 export function today(): ISODate {

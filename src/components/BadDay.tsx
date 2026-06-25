@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useApp } from '../store/AppContext'
 import { badDayGoals } from '../lib/coach'
 
@@ -6,6 +7,13 @@ import { badDayGoals } from '../lib/coach'
 export function BadDay({ onClose }: { onClose: () => void }) {
   const { todayLog, patchDay } = useApp()
   const goals = badDayGoals()
+
+  // Close on Escape — keyboard users shouldn't be trapped.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   function toggle(on: boolean) {
     patchDay({ badDay: on })
@@ -29,6 +37,9 @@ export function BadDay({ onClose }: { onClose: () => void }) {
         className="card"
         style={{ maxWidth: 460, width: '100%', margin: 12, borderRadius: 24 }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Having a bad day — support mode"
       >
         <div className="center" style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 40 }}>🫶</div>

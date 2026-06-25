@@ -105,7 +105,7 @@ export function Nutrition() {
                 hunger {m.hunger}/10 · {REASONS.find((r) => r.value === m.reason)?.label}
               </div>
             </div>
-            <button className="del" onClick={() => removeMeal(m.id)}>✕</button>
+            <button className="del" aria-label={`Remove ${m.slot}: ${m.description}`} onClick={() => removeMeal(m.id)}>✕</button>
           </div>
         ))}
         {!open ? (

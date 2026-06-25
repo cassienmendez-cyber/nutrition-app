@@ -71,8 +71,8 @@ export async function showNotification(title: string, body: string) {
   if (permission() !== 'granted') return
   const opts: NotificationOptions = {
     body,
-    icon: '/icon.png',
-    badge: '/icon.png',
+    icon: '/icon.svg',
+    badge: '/icon.svg',
     tag: title,
   }
   try {

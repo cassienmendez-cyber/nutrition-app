@@ -53,6 +53,24 @@ button {
   color: inherit;
 }
 
+/* Visible keyboard focus for everyone navigating without a mouse. */
+:focus-visible {
+  outline: 3px solid var(--sage-deep);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Respect users who've asked the OS to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
 h1, h2, h3, h4 {
   margin: 0;
   font-weight: 650;
@@ -140,14 +158,14 @@ h1, h2, h3, h4 {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 6px 2px;
+  padding: 6px 1px;
   color: var(--ink-faint);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   border-radius: 12px;
   transition: color 0.15s;
 }
-.nav button .ico { font-size: 21px; line-height: 1; }
+.nav button .ico { font-size: 19px; line-height: 1; }
 .nav button.active { color: var(--sage-deep); }
 .nav button.active .ico { transform: translateY(-1px); }
 

@@ -14,7 +14,8 @@ import { exportJSON, exportCSV, importJSON } from '../lib/exportData'
 import { coachStatus } from '../lib/api'
 
 export function Settings({ onClose }: { onClose: () => void }) {
-  const { state, importState, reset } = useApp()
+  const { state, importState, reset, setProfile } = useApp()
+  const { profile } = state
   const [reminders, setReminders] = useState<ReminderSettings>(loadReminders())
   const [perm, setPerm] = useState(permission())
   const [claude, setClaude] = useState<boolean | null>(null)
@@ -23,6 +24,13 @@ export function Settings({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     coachStatus().then(setClaude)
   }, [])
+
+  // Close on Escape.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   function update(patch: Partial<ReminderSettings>) {
     const next = { ...reminders, ...patch }
@@ -172,6 +180,44 @@ export function Settings({ onClose }: { onClose: () => void }) {
               <input type="file" accept="application/json" style={{ display: 'none' }} onChange={onImport} />
             </label>
             {msg && <p className="soft" style={{ fontSize: 13, marginBottom: 0 }}>{msg}</p>}
+          </div>
+
+          {/* Goals — these tune the dashboard rings and the prep score */}
+          <div className="card">
+            <div className="card-title">Your goals</div>
+            <p className="soft" style={{ marginTop: 0, fontSize: 14 }}>
+              Gentle targets, not rules. Set them where they feel kind and doable.
+            </p>
+
+            <div className="stat-row">
+              <span className="emoji">💧</span>
+              <div className="body"><div className="name">Water</div><div className="detail">glasses / day</div></div>
+              <div className="stepper">
+                <button aria-label="Fewer water glasses" onClick={() => setProfile({ waterGoal: Math.max(1, profile.waterGoal - 1) })}>−</button>
+                <span className="val" style={{ minWidth: 36 }}>{profile.waterGoal}</span>
+                <button aria-label="More water glasses" onClick={() => setProfile({ waterGoal: Math.min(16, profile.waterGoal + 1) })}>+</button>
+              </div>
+            </div>
+
+            <div className="stat-row">
+              <span className="emoji">💪</span>
+              <div className="body"><div className="name">Protein meals</div><div className="detail">meals with protein / day</div></div>
+              <div className="stepper">
+                <button aria-label="Fewer protein meals" onClick={() => setProfile({ proteinGoalMeals: Math.max(1, profile.proteinGoalMeals - 1) })}>−</button>
+                <span className="val" style={{ minWidth: 36 }}>{profile.proteinGoalMeals}</span>
+                <button aria-label="More protein meals" onClick={() => setProfile({ proteinGoalMeals: Math.min(5, profile.proteinGoalMeals + 1) })}>+</button>
+              </div>
+            </div>
+
+            <div className="stat-row" style={{ borderBottom: 'none' }}>
+              <span className="emoji">🚶</span>
+              <div className="body"><div className="name">Movement</div><div className="detail">minutes / day</div></div>
+              <div className="stepper">
+                <button aria-label="Less movement" onClick={() => setProfile({ movementGoal: Math.max(5, profile.movementGoal - 5) })}>−</button>
+                <span className="val" style={{ minWidth: 48 }}>{profile.movementGoal}m</span>
+                <button aria-label="More movement" onClick={() => setProfile({ movementGoal: Math.min(120, profile.movementGoal + 5) })}>+</button>
+              </div>
+            </div>
           </div>
 
           {/* Reset */}

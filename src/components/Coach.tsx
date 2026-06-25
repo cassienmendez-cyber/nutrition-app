@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useApp, newId } from '../store/AppContext'
-import { weeklyInsights, weeklyWins } from '../lib/coach'
+import { weeklyInsights, weeklyWins, weekDays } from '../lib/coach'
 import { pregnancyPrepScore } from '../lib/scores'
 import { buildGroceryPlan, type GroceryPlan } from '../lib/grocery'
-import { lastNDays } from '../lib/dates'
 import { askCoach, getWeeklyReview } from '../lib/api'
 import { Ring } from './Ring'
 
@@ -18,7 +17,7 @@ export function Coach() {
   const [reviewSource, setReviewSource] = useState<'claude' | 'offline'>('offline')
   const [reviewLoading, setReviewLoading] = useState(true)
 
-  const week = lastNDays(7).map((d) => state.days[d]).filter(Boolean)
+  const week = weekDays(state)
   const { score, pillars } = pregnancyPrepScore(week, state.profile)
   const insights = weeklyInsights(state)
   const wins = weeklyWins(state)

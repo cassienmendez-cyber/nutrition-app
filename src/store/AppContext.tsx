@@ -12,14 +12,56 @@ import { emptyState, seedState } from './seed'
 
 const STORAGE_KEY = 'bloom.state.v1'
 
+// Validate the shape of a persisted/imported blob before trusting it. A
+// corrupted or older-format value should never crash rendering — we fall back
+// to the demo seed instead.
+export function isValidState(value: unknown): value is AppState {
+  if (!value || typeof value !== 'object') return false
+  const s = value as Partial<AppState>
+  if (!s.profile || typeof s.profile !== 'object') return false
+  if (!s.days || typeof s.days !== 'object') return false
+  const p = s.profile as Partial<Profile>
+  if (typeof p.cycleLength !== 'number' || typeof p.lastPeriodStart !== 'string') return false
+  // Every day entry must at least carry a date and a meals array.
+  for (const day of Object.values(s.days as Record<string, unknown>)) {
+    const d = day as Partial<DayLog>
+    if (!d || typeof d.date !== 'string' || !Array.isArray(d.meals)) return false
+  }
+  return true
+}
+
+const DEFAULT_PROFILE: Profile = {
+  name: '',
+  cycleLength: 28,
+  periodLength: 5,
+  lastPeriodStart: today(),
+  waterGoal: 8,
+  proteinGoalMeals: 3,
+  movementGoal: 20,
+  ttc: true,
+}
+
+// Fill in any fields added since the saved version so older blobs keep working.
+function migrate(state: AppState): AppState {
+  const profile: Profile = { ...DEFAULT_PROFILE, ...state.profile }
+  const days: Record<ISODate, DayLog> = {}
+  for (const [date, d] of Object.entries(state.days)) {
+    days[date] = { ...d, date, pain: d.pain ?? [], meals: d.meals ?? [], checkIns: d.checkIns ?? [] }
+  }
+  return { onboarded: state.onboarded ?? true, profile, days }
+}
+
 function load(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as AppState
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (isValidState(parsed)) return migrate(parsed)
+    }
   } catch {
-    /* ignore */
+    /* ignore — fall through to the seed */
   }
-  // First run ships with demo history so the app feels alive immediately.
+  // First run (or unreadable data) ships with demo history.
   return seedState()
 }
 

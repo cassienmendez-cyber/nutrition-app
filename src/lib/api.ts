@@ -1,6 +1,6 @@
-import type { AppState } from '../types'
-import { respondToCheckIn, weeklyReviewNarrative } from './coach'
-import { lastNDays } from './dates'
+import type { AppState, CheckIn } from '../types'
+import { respondToCheckIn, weeklyReviewNarrative, weekDays } from './coach'
+import { lastNDays, today } from './dates'
 import { pregnancyPrepScore, dashboardMetrics } from './scores'
 
 // Thin client for the coach backend. Every call falls back to the local rule
@@ -34,13 +34,23 @@ function todayContext(state: AppState) {
   }
 }
 
+// Prior check-ins today become conversation history so the coach has memory.
+function historyFor(state: AppState): { role: 'user' | 'assistant'; text: string }[] {
+  const day = state.days[today()]
+  if (!day) return []
+  return day.checkIns.flatMap((c: CheckIn) => [
+    { role: 'user' as const, text: c.text },
+    { role: 'assistant' as const, text: c.reply },
+  ])
+}
+
 export async function askCoach(text: string, state: AppState): Promise<CoachResult> {
   try {
     const res = await withTimeout(
       fetch('/api/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, context: todayContext(state) }),
+        body: JSON.stringify({ text, context: todayContext(state), history: historyFor(state) }),
       }),
       20000,
     )
@@ -54,9 +64,48 @@ export async function askCoach(text: string, state: AppState): Promise<CoachResu
   return { reply: respondToCheckIn(text), source: 'offline' }
 }
 
-export async function getWeeklyReview(state: AppState): Promise<CoachResult> {
-  const week = lastNDays(7).map((d) => state.days[d]).filter(Boolean)
+// The review is identical until the day or the underlying data changes, so we
+// cache it (keyed by date + a cheap signature of the week) to avoid re-calling
+// Claude every time the Coach tab is opened.
+const REVIEW_CACHE_KEY = 'bloom.review.v1'
+
+function weekSignature(week: ReturnType<typeof weekDays>): string {
+  return week
+    .map((d) => `${d.date}:${d.meals.length}:${d.movementMinutes ?? 0}:${d.waterGlasses ?? 0}:${d.prenatalTaken ? 1 : 0}`)
+    .join('|')
+}
+
+export async function getWeeklyReview(state: AppState, force = false): Promise<CoachResult> {
+  const week = weekDays(state)
   const { score, pillars } = pregnancyPrepScore(week, state.profile)
+  const sig = `${today()}::${weekSignature(week)}`
+
+  if (!force) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(REVIEW_CACHE_KEY) || 'null')
+      if (cached && cached.sig === sig) {
+        return { reply: cached.reply, source: cached.source }
+      }
+    } catch {
+      /* ignore cache read errors */
+    }
+  }
+
+  const result = await fetchReview(state, week, score, pillars)
+  try {
+    localStorage.setItem(REVIEW_CACHE_KEY, JSON.stringify({ sig, ...result }))
+  } catch {
+    /* ignore */
+  }
+  return result
+}
+
+async function fetchReview(
+  state: AppState,
+  week: ReturnType<typeof weekDays>,
+  score: number,
+  pillars: { label: string; value: number }[],
+): Promise<CoachResult> {
   try {
     const res = await withTimeout(
       fetch('/api/review', {

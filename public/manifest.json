@@ -1,0 +1,19 @@
+{
+  "name": "Bloom — becoming your healthiest self",
+  "short_name": "Bloom",
+  "description": "A compassion-first health companion for the journey to conceive.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f4ef",
+  "theme_color": "#6b9080",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import { useApp } from '../store/AppContext'
 import { cycleInfo, PHASE_COPY } from '../lib/cycle'
 import { dashboardMetrics, fertilityScore } from '../lib/scores'
 import { weeklyInsights } from '../lib/coach'
-import { prettyDate } from '../lib/dates'
+import { prettyDate, daysBetween, today } from '../lib/dates'
 import { Ring } from './Ring'
 import { Plant } from './Plant'
 
@@ -30,7 +30,7 @@ export function Dashboard({ go }: { go: (tab: string) => void }) {
             ? `Ovulation in about ${cyc.daysUntilOvulation} days`
             : cyc.daysUntilOvulation === 0
             ? 'Peak fertility — today'
-            : `Next period in ${Math.max(0, (cyc.cycleDay && state.profile.cycleLength - cyc.cycleDay) || 0)} days`}
+            : `Next period in about ${Math.max(0, daysBetween(today(), cyc.nextPeriod))} days`}
         </div>
         {cyc.inFertileWindow && <span className="tag">✨ Fertile window</span>}
       </div>

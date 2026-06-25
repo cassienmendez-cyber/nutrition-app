@@ -1,5 +1,6 @@
 import type { AppState } from '../types'
 import { lastNDays } from './dates'
+import { isValidState } from '../store/AppContext'
 
 // Export / import all Bloom data. Local-first means the user owns their data —
 // they can take it with them (JSON for backup/restore, CSV for spreadsheets)
@@ -68,10 +69,13 @@ export function exportCSV(state: AppState) {
 }
 
 export async function importJSON(file: File): Promise<AppState> {
-  const text = await file.text()
-  const data = JSON.parse(text) as AppState
-  // Light validation — must look like a Bloom backup.
-  if (!data || typeof data !== 'object' || !data.profile || !data.days) {
+  let data: unknown
+  try {
+    data = JSON.parse(await file.text())
+  } catch {
+    throw new Error('That file isn’t valid JSON.')
+  }
+  if (!isValidState(data)) {
     throw new Error('That doesn’t look like a Bloom backup file.')
   }
   return data

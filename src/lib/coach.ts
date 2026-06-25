@@ -15,10 +15,28 @@ export interface Insight {
   text: string
 }
 
-function daysFor(state: AppState, n: number): DayLog[] {
-  return lastNDays(n)
+// A day "counts" for weekly stats only if the user actually logged something.
+// This stops unlogged days (and today, which is still in progress) from
+// deflating scores or being miscounted as a "skipped breakfast."
+export function isActiveDay(d: DayLog): boolean {
+  return (
+    d.meals.length > 0 ||
+    (d.movementMinutes ?? 0) > 0 ||
+    (d.waterGlasses ?? 0) > 0 ||
+    d.sleepHours != null ||
+    d.prenatalTaken != null ||
+    d.stress != null ||
+    d.bodyFeel != null
+  )
+}
+
+// The week we reflect on: the 7 days ending YESTERDAY (today is still unfolding),
+// keeping only days with real activity.
+export function weekDays(state: AppState): DayLog[] {
+  return lastNDays(7, today())
+    .filter((d) => d !== today())
     .map((d) => state.days[d])
-    .filter(Boolean) as DayLog[]
+    .filter((d): d is DayLog => !!d && isActiveDay(d))
 }
 
 function count(days: DayLog[], pred: (d: DayLog) => boolean): number {
@@ -29,8 +47,10 @@ function loggedMeal(d: DayLog, slot: string): boolean {
   return d.meals.some((m) => m.slot === slot)
 }
 
+const EMOTIONAL_REASONS = ['stress', 'sad', 'bored', 'lonely', 'reward'] as const
+
 export function weeklyInsights(state: AppState): Insight[] {
-  const week = daysFor(state, 7)
+  const week = weekDays(state)
   const out: Insight[] = []
   if (week.length === 0) return out
 
@@ -64,14 +84,41 @@ export function weeklyInsights(state: AppState): Insight[] {
     })
   }
 
-  // --- Emotional-eating pattern -------------------------------------------
-  const stressEats = week.flatMap((d) => d.meals).filter((m) => m.reason === 'stress')
-  if (stressEats.length >= 3) {
+  // --- Emotional-eating pattern (from real logged reasons) ----------------
+  const meals = week.flatMap((d) => d.meals)
+  const emotional = meals.filter((m) => (EMOTIONAL_REASONS as readonly string[]).includes(m.reason))
+  if (emotional.length >= 3) {
+    // Name the most common trigger so it feels seen, not generic.
+    const tally = emotional.reduce<Record<string, number>>((acc, m) => {
+      acc[m.reason] = (acc[m.reason] ?? 0) + 1
+      return acc
+    }, {})
+    const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0]
     out.push({
-      id: 'stress-eating',
+      id: 'emotional-eating',
       tone: 'support',
-      text: `Stress led to eating ${stressEats.length} times this week. That's information, not a failure. A 5-minute walk or some box breathing before eating can change how the meal feels.`,
+      text: `Eating followed a feeling (most often "${top}") ${emotional.length} times this week. That's information, not a failure — a short walk or some box breathing before eating can change how the meal lands.`,
     })
+  }
+
+  // --- Hunger-scale pattern (from the 1–10 logged at each meal) -----------
+  const hungers = meals.map((m) => m.hunger).filter((h) => typeof h === 'number')
+  if (hungers.length >= 4) {
+    const starving = hungers.filter((h) => h <= 2).length
+    const stuffed = hungers.filter((h) => h >= 9).length
+    if (starving >= 3) {
+      out.push({
+        id: 'hunger-starving',
+        tone: 'notice',
+        text: `You often waited until you were starving (${starving} meals this week). Eating a little sooner keeps energy and mood steadier — and usually means a calmer meal.`,
+      })
+    } else if (stuffed >= 3) {
+      out.push({
+        id: 'hunger-stuffed',
+        tone: 'support',
+        text: `A few meals left you very full (${stuffed} this week). No judgment — it often follows a day of under-eating. Steady protein earlier tends to soften that.`,
+      })
+    }
   }
 
   // --- Hydration trend -----------------------------------------------------
@@ -100,7 +147,7 @@ export function weeklyInsights(state: AppState): Insight[] {
 
 // Wins — concrete, non-weight things worth celebrating.
 export function weeklyWins(state: AppState): Win[] {
-  const week = daysFor(state, 7)
+  const week = weekDays(state)
   const wins: Win[] = []
   if (week.length === 0) return wins
 
@@ -139,7 +186,7 @@ export function weeklyWins(state: AppState): Win[] {
 
 // The Sunday narrative review — the "talk to me like a person" summary.
 export function weeklyReviewNarrative(state: AppState): string {
-  const week = daysFor(state, 7)
+  const week = weekDays(state)
   if (week.length === 0)
     return "We don't have a full week of data yet — keep checking in, and your first review will be here soon."
 
