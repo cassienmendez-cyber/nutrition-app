@@ -207,18 +207,20 @@ export function Creature({
   const bRy = torsoRy * 0.62
   const bCy = torsoCy + torsoRy * 0.24
   mid.push(<ellipse key="belly" cx={cx} cy={bCy} rx={bRx} ry={bRy} fill={c.belly} stroke={line} strokeWidth={2} />)
-  // German Shepherd black saddle over the upper back, clipped to the torso.
+  // German Shepherd black saddle riding HIGH over the back & shoulders, so the
+  // chest below stays tan (like Riley). Clipped to the torso silhouette.
   if (isDog) {
+    const clip = `saddle-${species}-${lvl}`
     mid.push(
-      <clipPath key="sclip" id={`saddle-${species}-${lvl}`}>
+      <clipPath key="sclip" id={clip}>
         <ellipse cx={cx} cy={torsoCy} rx={torsoRx} ry={torsoRy} />
       </clipPath>,
       <path
         key="saddle"
-        clipPath={`url(#saddle-${species}-${lvl})`}
-        d={`M${cx - torsoRx} ${torsoCy + torsoRy * 0.1} q0 ${-torsoRy * 1.2} ${torsoRx} ${-torsoRy * 1.2} q${torsoRx} 0 ${torsoRx} ${torsoRy * 1.2} q${-torsoRx * 0.5} ${torsoRy * 0.55} ${-torsoRx} ${torsoRy * 0.25} q${-torsoRx * 0.5} ${-torsoRy * 0.3} ${-torsoRx} ${-torsoRy * 0.25} Z`}
+        clipPath={`url(#${clip})`}
+        d={`M${cx - torsoRx} ${torsoCy - torsoRy * 0.32} Q${cx} ${torsoCy - torsoRy * 1.3} ${cx + torsoRx} ${torsoCy - torsoRy * 0.32} Q${cx + torsoRx * 0.5} ${torsoCy + torsoRy * 0.04} ${cx} ${torsoCy - torsoRy * 0.08} Q${cx - torsoRx * 0.5} ${torsoCy + torsoRy * 0.04} ${cx - torsoRx} ${torsoCy - torsoRy * 0.32} Z`}
         fill={c.accent}
-        opacity={0.92}
+        opacity={0.95}
       />,
     )
   }
@@ -300,7 +302,8 @@ export function Creature({
       )
     }
   } else if (isDog) {
-    // Ears mature: floppy puppy ears that lift into erect, pointed Shepherd ears.
+    const pink = '#d6a79c'
+    // Ears: tan with pink insides and dark tips. Floppy as a pup, then erect.
     const erect = lvl >= 2
     for (const d of [-1, 1] as const) {
       if (erect) {
@@ -308,28 +311,44 @@ export function Creature({
         const baseOutX = cx + d * headR * 0.74
         const baseInX = cx + d * headR * 0.3
         const baseY = headTop + headR * 0.34
+        const baseInY = headTop + headR * 0.22
         const tipX = cx + d * headR * 0.6
         const tipY = headTop + headR * 0.08 - eh
         front.push(
-          <path key={`ear${d}`} d={`M${baseInX} ${headTop + headR * 0.22} L${tipX} ${tipY} L${baseOutX} ${baseY} Z`} fill={c.accent} stroke={line} strokeWidth={LW} strokeLinejoin="round" />,
-          <path key={`earin${d}`} d={`M${baseInX + d * 4} ${headTop + headR * 0.26} L${tipX} ${tipY + eh * 0.32} L${baseOutX - d * 5} ${baseY - 3} Z`} fill={c.body} stroke="none" opacity={0.85} />,
+          <path key={`ear${d}`} d={`M${baseInX} ${baseInY} L${tipX} ${tipY} L${baseOutX} ${baseY} Z`} fill={c.body} stroke={line} strokeWidth={LW} strokeLinejoin="round" />,
+          <path key={`earin${d}`} d={`M${baseInX + d * 4} ${baseInY + 3} L${tipX} ${tipY + eh * 0.42} L${baseOutX - d * 5} ${baseY - 3} Z`} fill={pink} stroke="none" />,
+          <path key={`eart${d}`} d={`M${tipX - d * 6} ${tipY + eh * 0.28} L${tipX} ${tipY} L${tipX + d * 4} ${tipY + eh * 0.2} Z`} fill={c.accent} stroke="none" />,
         )
       } else {
         const ex = cx + d * headR * 0.82
-        const ey = headTop + headR * 0.62
+        const ey = headTop + headR * 0.6
         front.push(
-          <ellipse key={`ear${d}`} cx={ex} cy={ey} rx={9} ry={15} fill={c.accent} stroke={line} strokeWidth={LW} transform={`rotate(${d * 22} ${ex} ${ey})`} />,
-          <ellipse key={`earin${d}`} cx={ex + d * 1} cy={ey + 1} rx={4.5} ry={9} fill={c.shade} opacity={0.6} transform={`rotate(${d * 22} ${ex} ${ey})`} />,
+          <ellipse key={`ear${d}`} cx={ex} cy={ey} rx={9} ry={15} fill={c.body} stroke={line} strokeWidth={LW} transform={`rotate(${d * 24} ${ex} ${ey})`} />,
+          <ellipse key={`earin${d}`} cx={ex} cy={ey - 1} rx={4.5} ry={9} fill={pink} opacity={0.85} transform={`rotate(${d * 24} ${ex} ${ey})`} />,
+          <ellipse key={`eart${d}`} cx={ex} cy={ey + 8} rx={5.5} ry={6.5} fill={c.accent} opacity={0.85} transform={`rotate(${d * 24} ${ex} ${ey})`} />,
         )
       }
     }
-    // Muzzle (cream) with a black nose; both grow more defined with age.
-    const mrx = headR * (0.42 + g.snout * 0.12)
-    const mry = headR * (0.32 + g.snout * 0.1)
+    // Dark mask: a crown over the forehead pointing down between the eyes.
     front.push(
-      <ellipse key="muzzle" cx={cx} cy={snoutCy} rx={mrx} ry={mry} fill={c.belly} stroke={line} strokeWidth={2} />,
-      <path key="nose" d={`M${cx - 5} ${snoutCy - mry * 0.55} q5 -4 10 0 q1 5 -5 7 q-6 -2 -5 -7 Z`} fill={c.accent} stroke={line} strokeWidth={1.4} strokeLinejoin="round" />,
+      <path key="crown" d={`M${cx - headR * 0.52} ${headTop + headR * 0.42} Q${cx} ${headTop} ${cx + headR * 0.52} ${headTop + headR * 0.42} Q${cx + headR * 0.16} ${eyeY - eyeR * 0.4} ${cx} ${eyeY + eyeR * 0.3} Q${cx - headR * 0.16} ${eyeY - eyeR * 0.4} ${cx - headR * 0.52} ${headTop + headR * 0.42} Z`} fill={c.accent} />,
     )
+    // Muzzle: tan lower jaw (mouth shows), dark bridge stripe, black nose.
+    const mrx = headR * (0.42 + g.snout * 0.12)
+    const mry = headR * (0.34 + g.snout * 0.1)
+    front.push(
+      <ellipse key="muzzle" cx={cx} cy={snoutCy} rx={mrx} ry={mry} fill={c.body} stroke={line} strokeWidth={2} />,
+      <path key="bridge" d={`M${cx - headR * 0.14} ${eyeY} Q${cx - mrx * 0.5} ${snoutCy - mry * 0.4} ${cx - mrx * 0.42} ${snoutCy} Q${cx} ${snoutCy + 2} ${cx + mrx * 0.42} ${snoutCy} Q${cx + mrx * 0.5} ${snoutCy - mry * 0.4} ${cx + headR * 0.14} ${eyeY} Q${cx} ${eyeY - eyeR * 0.3} ${cx - headR * 0.14} ${eyeY} Z`} fill={c.accent} />,
+      <path key="nose" d={`M${cx - 5.5} ${snoutCy - mry * 0.5} q5.5 -4.5 11 0 q1.5 5.5 -5.5 7.5 q-7 -2 -5.5 -7.5 Z`} fill="#191210" stroke={line} strokeWidth={1.2} strokeLinejoin="round" />,
+    )
+    // Tan "eyebrow" dots on the dark mask — a classic Shepherd expression.
+    for (const d of [-1, 1] as const) {
+      front.push(<ellipse key={`brow${d}`} cx={cx + d * eyeDX * 0.74} cy={eyeY - eyeR * 0.95} rx={eyeR * 0.42} ry={eyeR * 0.32} fill={c.body} />)
+    }
+    // Riley's signature happy tongue.
+    if (happy) {
+      front.push(<path key="tongue" d={`M${cx - 4.5} ${mouthY} q4.5 8 9 0 q-1 6.5 -4.5 7.5 q-3.5 -1 -4.5 -7.5 Z`} fill="#ef93a0" stroke={line} strokeWidth={1.1} strokeLinejoin="round" />)
+    }
   }
 
   // snout / muzzle (dragon, grows)

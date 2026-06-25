@@ -14,7 +14,11 @@ export function Onboarding() {
   const [cycleLength, setCycleLength] = useState(28)
   const [lastPeriodStart, setLastPeriodStart] = useState(today())
   const [petName, setPetName] = useState('Pip')
+  const [nameEdited, setNameEdited] = useState(false)
   const [species, setSpecies] = useState<PetSpecies>('frog')
+
+  // A friendly default name per species (until the user types their own).
+  const defaultName = (s: PetSpecies) => (s === 'dog' ? 'Riley' : 'Pip')
 
   function finish() {
     setPet({ name: petName.trim() || 'Pip', species })
@@ -101,7 +105,10 @@ export function Onboarding() {
               <button
                 key={s.id}
                 className={`species-pick ${species === s.id ? 'selected' : ''}`}
-                onClick={() => setSpecies(s.id)}
+                onClick={() => {
+                  setSpecies(s.id)
+                  if (!nameEdited) setPetName(defaultName(s.id))
+                }}
                 aria-label={s.label}
               >
                 <Creature species={s.id} level={0} size={46} />
@@ -112,7 +119,15 @@ export function Onboarding() {
 
           <div className="field" style={{ marginTop: 14 }}>
             <label>Give them a name</label>
-            <input type="text" value={petName} maxLength={16} onChange={(e) => setPetName(e.target.value)} />
+            <input
+              type="text"
+              value={petName}
+              maxLength={16}
+              onChange={(e) => {
+                setPetName(e.target.value)
+                setNameEdited(true)
+              }}
+            />
           </div>
           <button className="btn" onClick={finish}>Start growing together 🌱</button>
         </div>
