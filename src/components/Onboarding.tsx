@@ -1,17 +1,22 @@
 import { useState } from 'react'
 import { useApp } from '../store/AppContext'
 import { today } from '../lib/dates'
+import { SPECIES } from '../lib/pet'
+import type { PetSpecies } from '../types'
 
 // A warm, low-pressure intro. We ask only what we need to be useful, and frame
 // everything around becoming healthier — never weight.
 export function Onboarding() {
-  const { setProfile } = useApp()
+  const { setProfile, setPet } = useApp()
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [cycleLength, setCycleLength] = useState(28)
   const [lastPeriodStart, setLastPeriodStart] = useState(today())
+  const [petName, setPetName] = useState('Pip')
+  const [species, setSpecies] = useState<PetSpecies>('frog')
 
   function finish() {
+    setPet({ name: petName.trim() || 'Pip', species })
     setProfile({ name: name.trim() || 'friend', cycleLength, lastPeriodStart }, true)
   }
 
@@ -71,12 +76,38 @@ export function Onboarding() {
               <button onClick={() => setCycleLength(Math.min(40, cycleLength + 1))}>+</button>
             </div>
           </div>
-          <button className="btn" onClick={finish}>Start blooming 🌸</button>
+          <button className="btn" onClick={() => setStep(3)}>Next</button>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="card">
+          <h2>Meet your companion 🥚</h2>
+          <p className="soft">
+            As you care for yourself, you’ll earn points to feed a little creature — and watch it
+            grow. Pick who you’d like to raise:
+          </p>
+          <div className="chip-row" style={{ marginTop: 12, marginBottom: 14 }}>
+            {SPECIES.map((s) => (
+              <button
+                key={s.id}
+                className={`chip ${species === s.id ? 'selected' : ''}`}
+                onClick={() => setSpecies(s.id)}
+              >
+                <span className="emoji">{s.emoji}</span> {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="field">
+            <label>Give them a name</label>
+            <input type="text" value={petName} maxLength={16} onChange={(e) => setPetName(e.target.value)} />
+          </div>
+          <button className="btn" onClick={finish}>Start growing together 🌱</button>
         </div>
       )}
 
       <p className="center muted" style={{ fontSize: 12, marginTop: 16 }}>
-        Step {step + 1} of 3
+        Step {step + 1} of 4
       </p>
     </div>
   )

@@ -6,8 +6,10 @@ import {
   useReducer,
   type ReactNode,
 } from 'react'
-import type { AppState, CheckIn, DayLog, ISODate, Meal, Profile } from '../types'
+import type { AppState, CheckIn, DayLog, ISODate, Meal, Pet, Profile } from '../types'
 import { today } from '../lib/dates'
+import { makeDefaultPet, applyFeed, type ShopItem } from '../lib/pet'
+import { availablePoints } from '../lib/points'
 import { emptyState, seedState } from './seed'
 
 const STORAGE_KEY = 'bloom.state.v1'
@@ -48,7 +50,9 @@ function migrate(state: AppState): AppState {
   for (const [date, d] of Object.entries(state.days)) {
     days[date] = { ...d, date, pain: d.pain ?? [], meals: d.meals ?? [], checkIns: d.checkIns ?? [] }
   }
-  return { onboarded: state.onboarded ?? true, profile, days }
+  // Pet was added after the first releases — give older backups a companion.
+  const pet: Pet = state.pet ? { ...makeDefaultPet(Date.now()), ...state.pet } : makeDefaultPet(Date.now())
+  return { onboarded: state.onboarded ?? true, profile, pet, days }
 }
 
 function load(): AppState {
@@ -83,6 +87,8 @@ type Action =
   | { type: 'REMOVE_MEAL'; date: ISODate; mealId: string }
   | { type: 'ADD_CHECKIN'; date: ISODate; checkIn: CheckIn }
   | { type: 'SET_PROFILE'; profile: Partial<Profile>; onboard?: boolean }
+  | { type: 'SET_PET'; patch: Partial<Pet> }
+  | { type: 'FEED'; item: ShopItem }
   | { type: 'IMPORT'; state: AppState }
   | { type: 'RESET'; demo: boolean }
 
@@ -125,6 +131,13 @@ function reducer(state: AppState, action: Action): AppState {
         profile: { ...state.profile, ...action.profile },
         onboarded: action.onboard ? true : state.onboarded,
       }
+    case 'SET_PET':
+      return { ...state, pet: { ...state.pet, ...action.patch } }
+    case 'FEED': {
+      // Only feed if it's affordable — guards against double taps / races.
+      if (availablePoints(state) < action.item.cost) return state
+      return { ...state, pet: applyFeed(state.pet, action.item, Date.now()) }
+    }
     case 'IMPORT':
       return action.state
     case 'RESET':
@@ -142,6 +155,8 @@ interface Ctx {
   removeMeal: (mealId: string, date?: ISODate) => void
   addCheckIn: (checkIn: CheckIn, date?: ISODate) => void
   setProfile: (profile: Partial<Profile>, onboard?: boolean) => void
+  setPet: (patch: Partial<Pet>) => void
+  feed: (item: ShopItem) => void
   importState: (state: AppState) => void
   reset: (demo: boolean) => void
 }
@@ -164,6 +179,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       removeMeal: (mealId, date = t) => dispatch({ type: 'REMOVE_MEAL', date, mealId }),
       addCheckIn: (checkIn, date = t) => dispatch({ type: 'ADD_CHECKIN', date, checkIn }),
       setProfile: (profile, onboard) => dispatch({ type: 'SET_PROFILE', profile, onboard }),
+      setPet: (patch) => dispatch({ type: 'SET_PET', patch }),
+      feed: (item) => dispatch({ type: 'FEED', item }),
       importState: (next) => dispatch({ type: 'IMPORT', state: next }),
       reset: (demo) => dispatch({ type: 'RESET', demo }),
     }

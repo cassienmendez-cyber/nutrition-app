@@ -1,5 +1,6 @@
 import type { AppState, DayLog, EatingReason, MealSlot } from '../types'
 import { addDays, lastNDays, today } from '../lib/dates'
+import { makeDefaultPet } from '../lib/pet'
 
 let idc = 0
 const id = () => `seed-${idc++}`
@@ -77,6 +78,7 @@ export function seedState(): AppState {
       movementGoal: 20,
       ttc: true,
     },
+    pet: makeDefaultPet(Date.now()),
     days: buildDays(),
   }
 }
@@ -94,6 +96,7 @@ export function emptyState(): AppState {
       movementGoal: 20,
       ttc: true,
     },
+    pet: makeDefaultPet(Date.now()),
     days: {
       [today()]: { date: today(), pain: [], meals: [], checkIns: [], alcohol: false },
     },

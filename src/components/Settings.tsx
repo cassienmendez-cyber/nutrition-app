@@ -12,10 +12,12 @@ import {
 } from '../lib/notifications'
 import { exportJSON, exportCSV, importJSON } from '../lib/exportData'
 import { coachStatus } from '../lib/api'
+import { SPECIES, petStage, speciesEmoji } from '../lib/pet'
 
 export function Settings({ onClose }: { onClose: () => void }) {
-  const { state, importState, reset, setProfile } = useApp()
-  const { profile } = state
+  const { state, importState, reset, setProfile, setPet } = useApp()
+  const { profile, pet } = state
+  const petStageInfo = petStage(pet.growth)
   const [reminders, setReminders] = useState<ReminderSettings>(loadReminders())
   const [perm, setPerm] = useState(permission())
   const [claude, setClaude] = useState<boolean | null>(null)
@@ -76,6 +78,36 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h1 style={{ fontSize: 24 }}>Settings</h1>
             <button className="btn ghost small" onClick={onClose}>Done</button>
+          </div>
+
+          {/* Companion */}
+          <div className="card">
+            <div className="card-title">Your companion</div>
+            <div className="stat-row">
+              <span className="emoji" style={{ fontSize: 28 }}>{petStageInfo.index === 0 ? '🥚' : speciesEmoji(pet.species)}</span>
+              <div className="body">
+                <div className="name">{pet.name}</div>
+                <div className="detail">{petStageInfo.stage.name} · grown {Math.round(pet.growth)}</div>
+              </div>
+            </div>
+            <div className="field" style={{ marginTop: 10 }}>
+              <label>Name</label>
+              <input type="text" value={pet.name} maxLength={16} onChange={(e) => setPet({ name: e.target.value })} />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Species</label>
+              <div className="chip-row">
+                {SPECIES.map((s) => (
+                  <button
+                    key={s.id}
+                    className={`chip ${pet.species === s.id ? 'selected' : ''}`}
+                    onClick={() => setPet({ species: s.id })}
+                  >
+                    <span className="emoji">{s.emoji}</span> {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Coach status */}

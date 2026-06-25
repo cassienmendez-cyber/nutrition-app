@@ -6,7 +6,9 @@ import { buildWorkout } from './exercise'
 import { isActiveDay, weekDays, weeklyInsights, streakFreeMomentum, respondToCheckIn } from './coach'
 import { buildGroceryPlan, suggestMeals } from './grocery'
 import { computeTrophy, trophyStats, closestTrophies, TROPHIES } from './achievements'
-import type { AppState, DayLog, EatingReason, Meal, MealSlot, Profile } from '../types'
+import { pointsForDay, totalEarnedPoints, availablePoints } from './points'
+import { petStage, petAppearance, settlePet, applyFeed, makeDefaultPet, SHOP } from './pet'
+import type { AppState, DayLog, EatingReason, Meal, MealSlot, Pet, Profile } from '../types'
 
 // --- fixtures --------------------------------------------------------------
 
@@ -39,10 +41,10 @@ const profile: Profile = {
   ttc: true,
 }
 
-function stateWith(days: DayLog[]): AppState {
+function stateWith(days: DayLog[], pet?: Pet): AppState {
   const map: Record<string, DayLog> = {}
   for (const d of days) map[d.date] = d
-  return { onboarded: true, profile, days: map }
+  return { onboarded: true, profile, days: map, pet: pet ?? makeDefaultPet(0) }
 }
 
 // --- dates -----------------------------------------------------------------
@@ -267,5 +269,62 @@ describe('trophies', () => {
     const stats = trophyStats(stateWith([]))
     expect(stats.total).toBe(TROPHIES.length)
     expect(stats.earned).toBe(0)
+  })
+})
+
+// --- points economy --------------------------------------------------------
+
+describe('points', () => {
+  it('rewards quality: a protein + veg meal beats a plain one', () => {
+    const plain = day('2026-03-10', { meals: [meal('lunch')] })
+    const quality = day('2026-03-10', { meals: [meal('lunch', { hasProtein: true, hasVeg: true, hunger: 5 })] })
+    expect(pointsForDay(quality, profile)).toBeGreaterThan(pointsForDay(plain, profile))
+  })
+
+  it('a hard day handled with self-compassion still earns points', () => {
+    const bad = day('2026-03-10', { badDay: true })
+    expect(pointsForDay(bad, profile)).toBeGreaterThan(0)
+  })
+
+  it('available = total earned minus what the pet spent, never negative', () => {
+    const s = stateWith(
+      [day('2026-03-10', { meals: [meal('lunch', { hasProtein: true })], prenatalTaken: true })],
+      { ...makeDefaultPet(0), spent: 999999 },
+    )
+    expect(totalEarnedPoints(s)).toBeGreaterThan(0)
+    expect(availablePoints(s)).toBe(0)
+  })
+})
+
+// --- pet engine ------------------------------------------------------------
+
+describe('pet', () => {
+  it('starts as an egg and hatches into its species as it grows', () => {
+    expect(petAppearance(makeDefaultPet(0)).emoji).toBe('🥚')
+    const grown = { ...makeDefaultPet(0), species: 'turtle' as const, growth: 130 }
+    expect(petAppearance(grown).emoji).toBe('🐢')
+    expect(petStage(130).stage.name).toBe('Little one')
+  })
+
+  it('feeding spends points-worth of cost, raises growth, and never overfills past 100', () => {
+    const fish = SHOP.find((i) => i.id === 'fish')!
+    const fed = applyFeed({ ...makeDefaultPet(0), fullness: 90 }, fish, 0)
+    expect(fed.growth).toBe(fish.growth)
+    expect(fed.spent).toBe(fish.cost)
+    expect(fed.fullness).toBeLessThanOrEqual(100)
+  })
+
+  it('decays gently over time but is capped and never goes negative', () => {
+    const pet = { ...makeDefaultPet(0), fullness: 50, hydration: 50 }
+    const oneDayLater = settlePet(pet, 24 * 3_600_000)
+    expect(oneDayLater.fullness).toBeLessThan(50)
+    expect(oneDayLater.fullness).toBeGreaterThanOrEqual(0)
+    const wayLater = settlePet(pet, 1000 * 3_600_000) // capped decay
+    expect(wayLater.fullness).toBeGreaterThanOrEqual(0)
+  })
+
+  it('growth only moves forward — a missed feed never lowers it', () => {
+    const pet = { ...makeDefaultPet(0), growth: 200 }
+    expect(settlePet(pet, 9_999_999_999).growth).toBe(200)
   })
 })

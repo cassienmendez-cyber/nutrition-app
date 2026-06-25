@@ -26,8 +26,19 @@ for pregnancy — instead of yelling *"You have 237 calories left."*
 
 ## Features
 
-- **Dashboard** — Fertility Score, Recovery, Nutrition, Movement, Water, Sleep,
-  Stress, and your Cycle Day on one calm screen. No guilt.
+- **🐸 Grow a companion (the game)** — caring for yourself earns **points**, and
+  the amount is dictated by *quality*: a protein- and veg-rich meal eaten at
+  comfortable hunger beats a plain one; more movement earns more (up to a kind
+  cap); water, sleep, prenatal, cycle-logging and coach check-ins all count —
+  and even a hard day handled with self-compassion earns. Spend points in the
+  **Pantry** on food and water to feed a creature that **grows through stages**
+  (egg → hatchling → … → radiant), with a celebration each time it levels up.
+  Pick and name your companion (frog, turtle, axolotl, whale, dragon, chick).
+  It only ever grows and never dies — at most it gets a little sleepy until you
+  feed it. No guilt, ever.
+- **Dashboard** — your companion front and centre, today's points and how you
+  earned them, plus Recovery / Nutrition / Movement / Water / Sleep / Stress and
+  your Cycle Day. No calories.
 - **Pain-first Exercise engine** — pick how your body feels and flag any pain
   (ankle, knee, hip, back, neck…). Bloom reroutes to seated, band, mobility, or
   stretch work so movement never depends on a pain-free body.
@@ -84,12 +95,12 @@ for pregnancy — instead of yelling *"You have 237 calories left."*
 server/         Express backend — the Claude-powered coach & weekly review
 src/
   lib/          domain logic — cycle math, scores, exercise engine, coach,
-                achievements (trophies), grocery, api (backend client + fallback),
-                notifications, export
+                achievements (trophies), points (economy), pet (companion engine),
+                grocery, api (backend client + fallback), notifications, export
   store/        React context + reducer, localStorage persistence, demo seed data
-  components/   Dashboard, Exercise, Nutrition, Fertility, Trends/Trophies,
-                Coach, BadDay, Settings…
-  styles/       one calm global stylesheet (sage / clay / cream)
+  components/   Dashboard, PetHabitat, Shop, Exercise, Nutrition, Fertility,
+                Trends/Trophies, Coach, BadDay, Settings…
+  styles/       one cute global stylesheet (blue / green / black / gray)
 public/sw.js    service worker (reminder notifications + installable PWA)
 ```
 

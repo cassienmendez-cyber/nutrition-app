@@ -1,26 +1,38 @@
 :root {
-  /* A calm, warm palette — sage, clay, cream. Nothing that yells. */
-  --bg: #f6f4ef;
+  /* A cute, cool palette — blue + green on near-black, with neutral grays.
+     Nothing alarming: "needs attention" is a calm gray, never red. */
+  --bg: #eef3f4;
   --surface: #ffffff;
-  --surface-2: #f0ede6;
-  --ink: #2f3a35;
-  --ink-soft: #5c6a63;
-  --ink-faint: #8a948e;
-  --sage: #6b9080;
-  --sage-deep: #527a68;
-  --sage-soft: #cce3d8;
-  --clay: #d8a47f;
-  --clay-soft: #f3e0d2;
-  --blush: #e7a3a3;
-  --gold: #e9c46a;
-  --sky: #8ecae6;
-  --good: #6b9080;
-  --okay: #e0b15e;
-  --attention: #d98c7a;
-  --line: #e6e2da;
-  --shadow: 0 6px 24px rgba(60, 70, 64, 0.08);
-  --shadow-sm: 0 2px 8px rgba(60, 70, 64, 0.06);
-  --radius: 20px;
+  --surface-2: #e6edef;
+  --ink: #18242b;
+  --ink-soft: #46565e;
+  --ink-faint: #8597a0;
+
+  /* Greens (good / growth) */
+  --sage: #2f9e7f;
+  --sage-deep: #1f7a62;
+  --sage-soft: #cdeedf;
+  /* Blues (calm / water) */
+  --blue: #3d8fd1;
+  --blue-deep: #2b6ea6;
+  --blue-soft: #d6ecf9;
+  --sky: #7fc2e8;
+  /* Neutrals + accents */
+  --gray: #95a6ae;
+  --gray-soft: #e2e8ea;
+  --clay: #3d8fd1; /* legacy alias → now blue, keeps older components on-palette */
+  --clay-soft: #d6ecf9;
+  --blush: #5fb0a3;
+  --gold: #e2b23d;
+
+  --good: #2f9e7f; /* green */
+  --okay: #3d8fd1; /* blue */
+  --attention: #8597a0; /* neutral gray — calm, not a warning */
+
+  --line: #e1e8ea;
+  --shadow: 0 8px 26px rgba(24, 36, 43, 0.10);
+  --shadow-sm: 0 2px 10px rgba(24, 36, 43, 0.07);
+  --radius: 22px;
   --radius-sm: 14px;
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -246,8 +258,8 @@ h1, h2, h3, h4 {
   white-space: nowrap;
 }
 .badge.good { background: var(--sage-soft); color: var(--sage-deep); }
-.badge.okay { background: #faf0d6; color: #9a7820; }
-.badge.attention { background: #f8e3dc; color: #b5614c; }
+.badge.okay { background: var(--blue-soft); color: var(--blue-deep); }
+.badge.attention { background: var(--gray-soft); color: var(--ink-soft); }
 
 /* ---------- Progress bar ---------- */
 .bar {
@@ -265,8 +277,8 @@ h1, h2, h3, h4 {
   transition: width 0.5s ease;
 }
 .bar.good > span { background: var(--sage); }
-.bar.okay > span { background: var(--gold); }
-.bar.attention > span { background: var(--clay); }
+.bar.okay > span { background: var(--blue); }
+.bar.attention > span { background: var(--gray); }
 
 /* ---------- Fertility score ring ---------- */
 .score-ring {
@@ -283,7 +295,7 @@ h1, h2, h3, h4 {
 
 /* ---------- Hero / cycle banner ---------- */
 .hero {
-  background: linear-gradient(135deg, var(--sage) 0%, var(--sage-deep) 100%);
+  background: linear-gradient(135deg, var(--blue) 0%, var(--sage-deep) 100%);
   color: #fff;
   border-radius: var(--radius);
   padding: 20px;
@@ -504,6 +516,77 @@ input:focus, textarea:focus, select:focus {
 .list-plain li:last-child { border-bottom: none; }
 
 .divider { height: 1px; background: var(--line); margin: 16px 0; }
+
+/* ---------- Pet habitat ---------- */
+.habitat { margin-bottom: 14px; }
+.pet-scene {
+  position: relative;
+  height: 196px;
+  background: linear-gradient(180deg, var(--blue-soft) 0%, #e9f5ef 52%, var(--sage-soft) 100%);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.pet-emoji {
+  line-height: 1;
+  position: relative;
+  z-index: 2;
+  animation: bob 3.2s ease-in-out infinite;
+  filter: drop-shadow(0 8px 6px rgba(24, 36, 43, 0.16));
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-12px) rotate(1deg); }
+}
+.pet-aura {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(226, 178, 61, 0.5) 0%, rgba(226, 178, 61, 0) 70%);
+  z-index: 1;
+  animation: pulse 2.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+.bubble {
+  position: absolute;
+  bottom: -12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  animation: rise 6s linear infinite;
+}
+@keyframes rise {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 0.8; }
+  100% { transform: translateY(-210px); opacity: 0; }
+}
+.pet-body { padding: 16px 18px 18px; }
+.pet-name { font-weight: 700; font-size: 19px; }
+.points-pill {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--sage) 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.meters { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
+.meter .bar { margin-top: 4px; }
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shop-emoji { font-size: 30px; width: 38px; text-align: center; }
+.shop-effects { display: flex; gap: 10px; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--sage-deep); }
+.shop-effects span { background: var(--sage-soft); padding: 2px 8px; border-radius: 999px; }
 
 /* ---------- Trophies ---------- */
 .trophy-grid {

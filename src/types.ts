@@ -99,9 +99,29 @@ export interface Profile {
   ttc: boolean // trying to conceive
 }
 
+// ---------------------------------------------------------------------------
+// The companion — a cute creature you grow by caring for yourself. Healthy
+// choices earn points (quality-weighted); points buy food & water that feed the
+// creature and grow it through stages. Never punishing: it only ever grows, and
+// it never dies — at most it gets a little sleepy until you feed it.
+// ---------------------------------------------------------------------------
+
+export type PetSpecies = 'frog' | 'turtle' | 'axolotl' | 'whale' | 'dragon' | 'chick'
+
+export interface Pet {
+  name: string
+  species: PetSpecies
+  growth: number // permanent — drives the growth stage
+  spent: number // points spent feeding (available = earned − spent)
+  fullness: number // 0–100
+  hydration: number // 0–100
+  lastTick: number // ms timestamp, for gentle decay between visits
+}
+
 export interface AppState {
   profile: Profile
   days: Record<ISODate, DayLog>
+  pet: Pet
   onboarded: boolean
 }
 

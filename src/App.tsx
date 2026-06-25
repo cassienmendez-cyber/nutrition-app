@@ -11,6 +11,7 @@ import { BadDay } from './components/BadDay'
 import { Settings } from './components/Settings'
 import { loadReminders, registerServiceWorker, startReminderScheduler } from './lib/notifications'
 import { detectNewTrophy, TIER_META, type EarnedEvent } from './lib/achievements'
+import { detectPetStageUp, type Stage } from './lib/pet'
 
 type Tab = 'today' | 'move' | 'eat' | 'cycle' | 'trends' | 'coach'
 
@@ -29,6 +30,7 @@ export default function App() {
   const [badDayOpen, setBadDayOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [celebration, setCelebration] = useState<EarnedEvent | null>(null)
+  const [grewUp, setGrewUp] = useState<Stage | null>(null)
 
   // Register the service worker and resume reminders if the user enabled them.
   useEffect(() => {
@@ -45,6 +47,16 @@ export default function App() {
       return () => clearTimeout(t)
     }
   }, [state])
+
+  // Celebrate when the companion reaches a new growth stage.
+  useEffect(() => {
+    const stage = detectPetStageUp(state.pet.growth)
+    if (stage) {
+      setGrewUp(stage)
+      const t = setTimeout(() => setGrewUp(null), 5500)
+      return () => clearTimeout(t)
+    }
+  }, [state.pet.growth])
 
   if (!state.onboarded) return <Onboarding />
 
@@ -85,6 +97,17 @@ export default function App() {
           <div>
             <div className="t-head">{TIER_META[celebration.tier].emoji} {TIER_META[celebration.tier].label} unlocked!</div>
             <div className="t-body">{celebration.def.title} — {celebration.def.blurb.toLowerCase()}.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Companion grew up */}
+      {grewUp && (
+        <div className="trophy-toast" role="status" onClick={() => setGrewUp(null)} style={{ background: 'linear-gradient(135deg, var(--blue) 0%, var(--sage-deep) 100%)' }}>
+          <span className="big">{grewUp.name === 'Radiant' ? '🌟' : '🎉'}</span>
+          <div>
+            <div className="t-head">{state.pet.name} grew to {grewUp.name}!</div>
+            <div className="t-body">Your care is helping them flourish. Keep it up. 💚</div>
           </div>
         </div>
       )}
