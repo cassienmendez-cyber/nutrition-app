@@ -6,8 +6,9 @@ import { todayPoints } from '../lib/points'
 import { prettyDate, daysBetween, today } from '../lib/dates'
 import { PetHabitat } from './PetHabitat'
 import { PointsPill } from './PointsPill'
+import { WIDGET_ACTIONS, type WidgetAction } from './BuddyWidget'
 
-export function Dashboard({ go }: { go: (tab: string) => void }) {
+export function Dashboard({ go, quick }: { go: (tab: string) => void; quick: (a: WidgetAction) => void }) {
   const { state, todayLog } = useApp()
   const cyc = cycleInfo(state.profile)
   const phase = PHASE_COPY[cyc.phase]
@@ -43,6 +44,16 @@ export function Dashboard({ go }: { go: (tab: string) => void }) {
 
       {/* The companion — the heart of the game */}
       <PetHabitat />
+
+      {/* Quick-add strip — the same actions as the home-screen widget */}
+      <div className="quick-add">
+        {WIDGET_ACTIONS.map((a) => (
+          <button key={a.key} className="qa-btn" onClick={() => quick(a.key)}>
+            <span className="qa-emoji">{a.emoji}</span>
+            <span>{a.label}</span>
+          </button>
+        ))}
+      </div>
 
       {/* Today's points + how you earned them */}
       <div className="card">

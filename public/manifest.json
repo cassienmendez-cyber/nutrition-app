@@ -15,5 +15,35 @@
       "sizes": "any",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log a meal",
+      "short_name": "Meal",
+      "description": "Add what you ate",
+      "url": "/?go=eat",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Track a workout",
+      "short_name": "Workout",
+      "description": "Start GPS workout tracking",
+      "url": "/?go=track",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Water +1",
+      "short_name": "Water",
+      "description": "Log a glass of water",
+      "url": "/?go=water",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Talk to your coach",
+      "short_name": "Coach",
+      "description": "A gentle check-in",
+      "url": "/?go=coach",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
   ]
 }

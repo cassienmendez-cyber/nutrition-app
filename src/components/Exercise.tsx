@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '../store/AppContext'
 import {
   BODY_FEEL_OPTIONS,
@@ -9,12 +9,20 @@ import type { PainArea } from '../types'
 import { WorkoutTracker } from './WorkoutTracker'
 import { activityMeta, estimateSteps, fmtDistance, fmtDuration, fmtPace, fmtSteps, getUnits, loadWorkouts, deleteWorkout, type Workout } from '../lib/workout'
 
-export function Exercise() {
+export function Exercise({ autoTrack, onAutoTrackHandled }: { autoTrack?: boolean; onAutoTrackHandled?: () => void } = {}) {
   const { state, todayLog, patchDay } = useApp()
   const [logged, setLogged] = useState(false)
   const [tracking, setTracking] = useState(false)
   const [workouts, setWorkouts] = useState<Workout[]>(() => loadWorkouts())
   const miles = getUnits() === 'mi'
+
+  // Opened from the widget / "Track a workout" shortcut: auto-launch the tracker.
+  useEffect(() => {
+    if (autoTrack) {
+      setTracking(true)
+      onAutoTrackHandled?.()
+    }
+  }, [autoTrack, onAutoTrackHandled])
 
   const feel = todayLog.bodyFeel
   const pain = todayLog.pain

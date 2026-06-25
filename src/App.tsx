@@ -15,6 +15,7 @@ import { detectPetLevelUp } from './lib/pet'
 import { playEvolve } from './lib/sound'
 import { Creature } from './components/Creature'
 import { EvolutionGallery } from './components/EvolutionGallery'
+import { WidgetView, type WidgetAction } from './components/BuddyWidget'
 
 type Tab = 'today' | 'move' | 'eat' | 'cycle' | 'trends' | 'coach'
 
@@ -28,16 +29,41 @@ const TABS: { key: Tab; ico: string; label: string }[] = [
 ]
 
 export default function App() {
-  const { state } = useApp()
+  const { state, todayLog, patchDay } = useApp()
   const [tab, setTab] = useState<Tab>('today')
   const [badDayOpen, setBadDayOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [celebration, setCelebration] = useState<EarnedEvent | null>(null)
   const [grewUp, setGrewUp] = useState<string | null>(null)
   const [dir, setDir] = useState<'l' | 'r'>('r')
+  const [autoTrack, setAutoTrack] = useState(false)
   const touch = useRef<{ x: number; y: number } | null>(null)
 
   const idx = TABS.findIndex((t) => t.key === tab)
+
+  // Run a widget / shortcut quick-action: jump to the right place (and, for
+  // workout, auto-open the GPS tracker; for water, log a glass right away).
+  function quick(action: WidgetAction) {
+    if (action === 'eat') goTab('eat')
+    else if (action === 'coach') goTab('coach')
+    else if (action === 'track') {
+      setAutoTrack(true)
+      goTab('move')
+    } else if (action === 'water') {
+      patchDay({ waterGlasses: (todayLog.waterGlasses ?? 0) + 1 })
+      goTab('today')
+    }
+  }
+
+  // Home-screen shortcuts / widget links open the app at /?go=<action>.
+  useEffect(() => {
+    const go = new URLSearchParams(window.location.search).get('go')
+    if (go && ['eat', 'track', 'water', 'coach'].includes(go)) {
+      quick(go as WidgetAction)
+      window.history.replaceState({}, '', '/') // clean URL so refresh won't repeat
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Switch tabs with a direction-aware slide (used by swipe, nav and links).
   function goTab(next: Tab) {
@@ -95,6 +121,9 @@ export default function App() {
   // Reference chart of all creature evolutions, at /#evolutions.
   if (typeof window !== 'undefined' && window.location.hash === '#evolutions') return <EvolutionGallery />
 
+  // Standalone buddy widget (buddy + quick-add actions), at /#widget.
+  if (typeof window !== 'undefined' && window.location.hash === '#widget') return <WidgetView />
+
   if (!state.onboarded) return <Onboarding />
 
   return (
@@ -123,8 +152,8 @@ export default function App() {
       {/* Swipeable content — swipe left/right to move between sections */}
       <div className="swipe-area" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div className={`tab-pane ${dir}`} key={tab}>
-          {tab === 'today' && <Dashboard go={(t) => goTab(t as Tab)} />}
-          {tab === 'move' && <Exercise />}
+          {tab === 'today' && <Dashboard go={(t) => goTab(t as Tab)} quick={quick} />}
+          {tab === 'move' && <Exercise autoTrack={autoTrack} onAutoTrackHandled={() => setAutoTrack(false)} />}
           {tab === 'eat' && <Nutrition />}
           {tab === 'cycle' && <Fertility />}
           {tab === 'trends' && <Trends />}

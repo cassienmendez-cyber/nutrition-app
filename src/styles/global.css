@@ -997,3 +997,97 @@ input:focus, textarea:focus, select:focus {
   border-radius: var(--radius-sm);
   background: linear-gradient(180deg, var(--blue-soft), transparent);
 }
+
+/* ---- Buddy widget + quick-add ------------------------------------------- */
+.quick-add {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+.qa-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+.qa-btn:active { transform: scale(0.96); }
+.qa-emoji { font-size: 20px; }
+
+/* The buddy widget (standalone /#widget and reusable card) */
+.buddy-widget {
+  background: linear-gradient(180deg, var(--blue-soft), var(--sage-soft));
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.buddy-widget .bw-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.bw-pet {
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 18px;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+}
+.bw-name { font-size: 20px; font-weight: 800; }
+.bw-sub { font-size: 13px; color: var(--ink-soft); }
+.bw-pts { font-size: 13px; font-weight: 700; color: var(--sage-deep); margin-top: 2px; }
+.bw-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.bw-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+}
+.bw-btn:active { transform: scale(0.96); }
+.bw-emoji { font-size: 20px; }
+
+.widget-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--bg);
+}
+.widget-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.widget-brand { font-weight: 800; font-size: 16px; margin-bottom: 10px; }
+.widget-open {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  font-weight: 700;
+  color: var(--blue-deep);
+  text-decoration: none;
+}
