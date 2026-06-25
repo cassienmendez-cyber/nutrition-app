@@ -1,24 +1,23 @@
 name: Deploy to GitHub Pages
 
-# Builds the app and publishes it to GitHub Pages (free). The workflow
-# auto-enables Pages on first run, so there's no dashboard setup needed.
+# Builds the app and publishes it to the `gh-pages` branch, which GitHub Pages
+# serves (Settings → Pages → Source: "Deploy from a branch" → gh-pages → /root).
+# Pushing to a branch only needs contents:write, so this avoids the Pages-site
+# create-permission issue.
 on:
   push:
     branches: [main, claude/fertility-health-app-j4c487]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Only one deploy at a time; let a newer push supersede an in-progress run.
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,19 +27,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: actions/configure-pages@v5
+      - run: touch dist/.nojekyll
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages

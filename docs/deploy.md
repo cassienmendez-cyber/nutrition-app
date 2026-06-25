@@ -8,15 +8,21 @@ push-when-closed, run the backend at home — see `coach-subscription.md` and
 
 ## GitHub Pages (set up in this repo)
 
-A workflow at `.github/workflows/deploy.yml` builds the app and publishes it to
-GitHub Pages on every push to `main` (and the dev branch). It **auto-enables
-Pages** on the first run, so there's nothing to click.
+The built site is published to the **`gh-pages`** branch (the workflow at
+`.github/workflows/deploy.yml` rebuilds and updates it on every push).
 
-- Live URL: **https://cassienmendez-cyber.github.io/nutrition-app/**
-- Watch the run: the repo's **Actions** tab → "Deploy to GitHub Pages".
+**One-time setup** (GitHub can't enable Pages for you automatically):
 
-On your phone: open that URL in the browser, then **Add to Home Screen** to
-install it as an app (offline support, full-screen, app icon).
+1. Repo → **Settings → Pages**.
+2. **Build and deployment → Source → Deploy from a branch**.
+3. Branch: **`gh-pages`**, folder: **`/ (root)`** → **Save**.
+
+Give it ~1 minute, then it's live at:
+
+> **https://cassienmendez-cyber.github.io/nutrition-app/**
+
+On your phone: open that URL, then **Add to Home Screen** to install it as an
+app (offline support, full-screen, app icon).
 
 The build uses a relative base (`base: './'` in `vite.config.ts`) so it works at
 the Pages sub-path and at a root domain alike — no code changes needed if you
