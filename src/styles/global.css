@@ -1172,3 +1172,7 @@ html[data-theme='dark'] .insight.support { background: var(--surface-2); }
 html[data-theme='dark'] .trophy.earned { background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%); }
 html[data-theme='dark'] .btn.danger { background: #0b1216; }
 html[data-theme='dark'] .phase-chip { background: rgba(16, 21, 24, 0.72); }
+
+/* Let native controls (date/time pickers, spinners, scrollbars) match the theme. */
+html[data-theme='dark'] { color-scheme: dark; }
+html[data-theme='light'] { color-scheme: light; }
