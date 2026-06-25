@@ -19,6 +19,9 @@ export interface ReminderSettings {
   checkIn: boolean
   checkInTime: string // 'HH:MM'
   petCare: boolean // nudge when the companion's meters run low
+  quietHours: boolean // suppress all reminders overnight
+  quietStart: string // 'HH:MM' (start of the quiet window)
+  quietEnd: string // 'HH:MM' (end of the quiet window, next morning)
 }
 
 const KEY = 'bloom.reminders.v1'
@@ -38,6 +41,22 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
   checkIn: true,
   checkInTime: '20:00',
   petCare: true,
+  quietHours: true,
+  quietStart: '21:30',
+  quietEnd: '07:00',
+}
+
+// Is 'HH:MM' inside the quiet window? Handles overnight wrap (start > end).
+export function inQuietHours(hhmm: string, start: string, end: string): boolean {
+  const toMin = (s: string) => {
+    const [h, m] = s.split(':').map(Number)
+    return h * 60 + m
+  }
+  const t = toMin(hhmm)
+  const s = toMin(start)
+  const e = toMin(end)
+  if (s === e) return false // zero-length window
+  return s < e ? t >= s && t < e : t >= s || t < e
 }
 
 export function loadReminders(): ReminderSettings {
@@ -159,6 +178,9 @@ function tick() {
   if (!r.enabled || permission() !== 'granted') return
   const now = hhmmNow()
   const hour = new Date().getHours()
+
+  // Overnight quiet hours: stay silent entirely inside the window.
+  if (r.quietHours && inQuietHours(now, r.quietStart, r.quietEnd)) return
 
   // When Web Push is active, the SERVER fires the timed reminders (so they work
   // even with the app closed). Skip them locally to avoid double-notifying.
@@ -290,7 +312,8 @@ export function pushItems(r: ReminderSettings): PushItem[] {
   if (r.eat) r.eatTimes.forEach((t, i) => items.push({ time: t, title: '🍎 Time to nourish', body: 'A protein-forward bite keeps your energy steady. No rules — just fuel. 💚', tag: `eat-${i}`, url: '/' }))
   if (r.exercise) items.push({ time: r.exerciseTime, title: '🤸 Movement time', body: 'Even 10 gentle minutes counts. Tap to track a walk?', tag: 'exercise', url: '/' })
   if (r.checkIn) items.push({ time: r.checkInTime, title: '🌱 How was today?', body: 'Tell your coach about your day — no judgment, just a check-in.', tag: 'checkin', url: '/' })
-  return items
+  // Drop anything inside the overnight quiet window so the phone stays silent.
+  return r.quietHours ? items.filter((it) => !inQuietHours(it.time, r.quietStart, r.quietEnd)) : items
 }
 
 // Does the backend have push configured? Returns the VAPID public key or null.

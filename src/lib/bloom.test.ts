@@ -475,4 +475,25 @@ describe('push reminder schedule', () => {
     expect(tags.some((t) => t.startsWith('eat-'))).toBe(false)
     expect(tags).not.toContain('exercise')
   })
+
+  it('inQuietHours handles overnight wrap', async () => {
+    const { inQuietHours } = await import('./notifications')
+    // 21:30 → 07:00 window
+    expect(inQuietHours('22:00', '21:30', '07:00')).toBe(true)
+    expect(inQuietHours('03:00', '21:30', '07:00')).toBe(true)
+    expect(inQuietHours('07:00', '21:30', '07:00')).toBe(false) // end is exclusive
+    expect(inQuietHours('12:00', '21:30', '07:00')).toBe(false)
+    // same-day window 13:00 → 14:00
+    expect(inQuietHours('13:30', '13:00', '14:00')).toBe(true)
+    expect(inQuietHours('14:30', '13:00', '14:00')).toBe(false)
+  })
+
+  it('quiet hours drop push items inside the window', async () => {
+    const { pushItems, DEFAULT_REMINDERS } = await import('./notifications')
+    const r = { ...DEFAULT_REMINDERS, quietHours: true, quietStart: '21:00', quietEnd: '07:00', exercise: true, exerciseTime: '22:00' }
+    const tags = pushItems(r).map((i) => i.tag)
+    expect(tags).not.toContain('exercise') // 22:00 is inside quiet hours
+    // a daytime item survives
+    expect(pushItems({ ...r, exerciseTime: '17:30' }).map((i) => i.tag)).toContain('exercise')
+  })
 })

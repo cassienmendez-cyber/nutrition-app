@@ -332,13 +332,32 @@ export function Settings({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
 
-                <div className="stat-row" style={{ borderBottom: 'none' }}>
+                <div className="stat-row">
                   <span className="emoji">🐸</span>
                   <div className="body"><div className="name">Companion needs</div><div className="detail">when meters run low</div></div>
                   <button className={`chip ${reminders.petCare ? 'selected' : ''}`} onClick={() => update({ petCare: !reminders.petCare })}>
                     {reminders.petCare ? '✓' : 'off'}
                   </button>
                 </div>
+
+                <div className="stat-row" style={{ borderBottom: 'none' }}>
+                  <span className="emoji">🌙</span>
+                  <div className="body"><div className="name">Quiet hours</div><div className="detail">no nudges overnight</div></div>
+                  <button className={`chip ${reminders.quietHours ? 'selected' : ''}`} onClick={() => update({ quietHours: !reminders.quietHours })}>
+                    {reminders.quietHours ? 'On' : 'Off'}
+                  </button>
+                </div>
+                {reminders.quietHours && (
+                  <div className="stat-row" style={{ paddingTop: 0, borderBottom: 'none' }}>
+                    <span className="emoji" style={{ opacity: 0 }}>🌙</span>
+                    <div className="body"><div className="detail">from / to</div></div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <input type="time" value={reminders.quietStart} style={{ width: 104 }} onChange={(e) => update({ quietStart: e.target.value })} />
+                      <span className="muted" style={{ fontSize: 12 }}>→</span>
+                      <input type="time" value={reminders.quietEnd} style={{ width: 104 }} onChange={(e) => update({ quietEnd: e.target.value })} />
+                    </div>
+                  </div>
+                )}
 
                 {/* Phone push — reminders that arrive even when Bloom is closed */}
                 <div className="push-box">
