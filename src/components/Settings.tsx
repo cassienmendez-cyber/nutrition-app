@@ -20,7 +20,7 @@ import {
   type ReminderSettings,
 } from '../lib/notifications'
 import { exportJSON, exportCSV, importJSON } from '../lib/exportData'
-import { coachStatus } from '../lib/api'
+import { coachInfo, type CoachMode } from '../lib/api'
 import { SPECIES, petLevelInfo, LEVELS } from '../lib/pet'
 import { isSoundOn, setSoundOn, playFeed } from '../lib/sound'
 import { Creature } from './Creature'
@@ -32,6 +32,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
   const [reminders, setReminders] = useState<ReminderSettings>(loadReminders())
   const [perm, setPerm] = useState(permission())
   const [claude, setClaude] = useState<boolean | null>(null)
+  const [coachMode, setCoachMode] = useState<CoachMode>('off')
   const [sound, setSound] = useState(isSoundOn())
   const [msg, setMsg] = useState('')
   const [pushOnServer, setPushOnServer] = useState<boolean | null>(null)
@@ -40,7 +41,10 @@ export function Settings({ onClose }: { onClose: () => void }) {
   const [pushMsg, setPushMsg] = useState('')
 
   useEffect(() => {
-    coachStatus().then(setClaude)
+    coachInfo().then(({ connected, mode }) => {
+      setClaude(connected)
+      setCoachMode(mode)
+    })
     // Does the backend have push (VAPID) configured?
     if (pushSupported()) pushServerKey().then((k) => setPushOnServer(!!k))
     else setPushOnServer(false)
@@ -231,11 +235,21 @@ export function Settings({ onClose }: { onClose: () => void }) {
             <div className="stat-row" style={{ borderBottom: 'none' }}>
               <span className="emoji">{claude ? '✨' : '🌱'}</span>
               <div className="body">
-                <div className="name">{claude == null ? 'Checking…' : claude ? 'Live Claude coach connected' : 'Offline coach'}</div>
+                <div className="name">
+                  {claude == null
+                    ? 'Checking…'
+                    : claude
+                    ? coachMode === 'subscription'
+                      ? 'Live Claude coach (your subscription)'
+                      : 'Live Claude coach connected'
+                    : 'Offline coach'}
+                </div>
                 <div className="detail">
                   {claude
-                    ? 'Your check-ins are answered by Claude.'
-                    : 'Using the built-in compassionate coach. Add an API key on the server to go live.'}
+                    ? coachMode === 'subscription'
+                      ? 'Answered by Claude through your Pro/Max plan — no API charges. 💚'
+                      : 'Your check-ins are answered by Claude.'
+                    : 'Using the built-in compassionate coach. Connect Claude on the server to go live.'}
                 </div>
               </div>
             </div>

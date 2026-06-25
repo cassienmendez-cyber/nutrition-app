@@ -148,3 +148,18 @@ export async function coachStatus(): Promise<boolean> {
     return false
   }
 }
+
+export type CoachMode = 'subscription' | 'api' | 'off'
+
+// Richer status: whether the coach is live and which path powers it.
+export async function coachInfo(): Promise<{ connected: boolean; mode: CoachMode }> {
+  try {
+    const res = await withTimeout(fetch('/api/health'), 4000)
+    if (!res.ok) return { connected: false, mode: 'off' }
+    const data = await res.json()
+    const mode: CoachMode = data?.coachMode === 'subscription' ? 'subscription' : data?.coachMode === 'api' ? 'api' : 'off'
+    return { connected: !!data?.claude, mode }
+  } catch {
+    return { connected: false, mode: 'off' }
+  }
+}
