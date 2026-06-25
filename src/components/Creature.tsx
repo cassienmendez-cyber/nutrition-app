@@ -26,6 +26,8 @@ const SPP: Record<PetSpecies, Cfg> = {
   fish: { body: '#46a6e4', shade: '#2a79bd', belly: '#e3f1fc', line: '#173f63', accent: '#7cc4ef' },
   dragon: { body: '#f0934a', shade: '#d2702a', belly: '#fbe3c8', line: '#7a3a12', accent: '#f6c290', horn: '#f2e6c8', plates: true, snout: true },
   bird: { body: '#f3c042', shade: '#d99b1f', belly: '#fdf2cf', line: '#6f5210', accent: '#ef8f4a' },
+  // German Shepherd: tan coat, cream chest, black saddle / ears / muzzle.
+  dog: { body: '#d79a52', shade: '#b67c31', belly: '#f1ddb6', line: '#2e2113', accent: '#2b2218' },
 }
 
 // Per-species growing-up notes.
@@ -36,6 +38,7 @@ const NOTES: Record<PetSpecies, { rxMul: number; ryMul: number; leg: LegStyle; e
   frog: { rxMul: 1.12, ryMul: 0.86, leg: 'frog', eyeDy: -3, topEyes: true },
   fish: { rxMul: 0.88, ryMul: 1.14, leg: 'none', eyeDy: 0 },
   bird: { rxMul: 0.9, ryMul: 1.0, leg: 'twig', eyeDy: 0 },
+  dog: { rxMul: 1.02, ryMul: 0.98, leg: 'stand', eyeDy: 1 },
 }
 
 interface StageDef {
@@ -83,6 +86,7 @@ export function Creature({
   const line = g.elder ? '#5b6770' : c.line
   const f = g.f
   const isFish = species === 'fish'
+  const isDog = species === 'dog'
 
   // Per-species torso shaping; fish streamlines progressively (taller + narrower)
   const torsoRx = g.torsoRx * n.rxMul * (isFish ? 1 - lvl * 0.03 : 1)
@@ -150,6 +154,22 @@ export function Creature({
     }
   } else if (species === 'frog' && lvl >= 3) {
     behind.push(<ellipse key="pad" cx={cx} cy={FLOOR + 3} rx={torsoRx * 1.6} ry={10} fill={c.accent} stroke={line} strokeWidth={2} opacity={0.5} />)
+  } else if (isDog) {
+    // Bushy tail that fills out with age, sweeping down then up behind the hip.
+    const tx = cx + torsoRx * 0.78
+    const ty = torsoCy + torsoRy * 0.35
+    const ts = 0.7 + f * 0.5
+    behind.push(
+      <path
+        key="tail"
+        d={`M${tx} ${ty} q${20 * ts} ${4 * ts} ${24 * ts} ${-18 * ts} q${4 * ts} ${-16 * ts} ${-4 * ts} ${-24 * ts} q${3 * ts} ${14 * ts} ${-8 * ts} ${20 * ts} q${-9 * ts} ${5 * ts} ${-12 * ts} ${18 * ts} Z`}
+        fill={c.body}
+        stroke={line}
+        strokeWidth={LW}
+        strokeLinejoin="round"
+      />,
+      <path key="tailtip" d={`M${tx + 18 * ts} ${ty - 36 * ts} q${4 * ts} ${-8 * ts} ${-4 * ts} ${-14 * ts} q${3 * ts} ${10 * ts} ${-6 * ts} ${14 * ts} Z`} fill={c.accent} stroke={line} strokeWidth={2.2} strokeLinejoin="round" opacity={0.9} />,
+    )
   }
 
   // ---------- legs / feet ----------
@@ -187,6 +207,21 @@ export function Creature({
   const bRy = torsoRy * 0.62
   const bCy = torsoCy + torsoRy * 0.24
   mid.push(<ellipse key="belly" cx={cx} cy={bCy} rx={bRx} ry={bRy} fill={c.belly} stroke={line} strokeWidth={2} />)
+  // German Shepherd black saddle over the upper back, clipped to the torso.
+  if (isDog) {
+    mid.push(
+      <clipPath key="sclip" id={`saddle-${species}-${lvl}`}>
+        <ellipse cx={cx} cy={torsoCy} rx={torsoRx} ry={torsoRy} />
+      </clipPath>,
+      <path
+        key="saddle"
+        clipPath={`url(#saddle-${species}-${lvl})`}
+        d={`M${cx - torsoRx} ${torsoCy + torsoRy * 0.1} q0 ${-torsoRy * 1.2} ${torsoRx} ${-torsoRy * 1.2} q${torsoRx} 0 ${torsoRx} ${torsoRy * 1.2} q${-torsoRx * 0.5} ${torsoRy * 0.55} ${-torsoRx} ${torsoRy * 0.25} q${-torsoRx * 0.5} ${-torsoRy * 0.3} ${-torsoRx} ${-torsoRy * 0.25} Z`}
+        fill={c.accent}
+        opacity={0.92}
+      />,
+    )
+  }
   if (c.plates) {
     mid.push(
       <path key="s1" d={`M${cx - bRx * 0.7} ${bCy - bRy * 0.25} q${bRx * 0.7} ${bRy * 0.3} ${bRx * 1.4} 0`} fill="none" stroke={line} strokeWidth={1.5} opacity={0.5} />,
@@ -264,6 +299,37 @@ export function Creature({
         <circle key="sp2" cx={cx + headR * 0.5} cy={headTop + headR * 0.5} r={3.4} fill={c.shade} opacity={0.55} />,
       )
     }
+  } else if (isDog) {
+    // Ears mature: floppy puppy ears that lift into erect, pointed Shepherd ears.
+    const erect = lvl >= 2
+    for (const d of [-1, 1] as const) {
+      if (erect) {
+        const eh = 17 + (lvl - 2) * 3.5 // ears grow taller as it matures
+        const baseOutX = cx + d * headR * 0.74
+        const baseInX = cx + d * headR * 0.3
+        const baseY = headTop + headR * 0.34
+        const tipX = cx + d * headR * 0.6
+        const tipY = headTop + headR * 0.08 - eh
+        front.push(
+          <path key={`ear${d}`} d={`M${baseInX} ${headTop + headR * 0.22} L${tipX} ${tipY} L${baseOutX} ${baseY} Z`} fill={c.accent} stroke={line} strokeWidth={LW} strokeLinejoin="round" />,
+          <path key={`earin${d}`} d={`M${baseInX + d * 4} ${headTop + headR * 0.26} L${tipX} ${tipY + eh * 0.32} L${baseOutX - d * 5} ${baseY - 3} Z`} fill={c.body} stroke="none" opacity={0.85} />,
+        )
+      } else {
+        const ex = cx + d * headR * 0.82
+        const ey = headTop + headR * 0.62
+        front.push(
+          <ellipse key={`ear${d}`} cx={ex} cy={ey} rx={9} ry={15} fill={c.accent} stroke={line} strokeWidth={LW} transform={`rotate(${d * 22} ${ex} ${ey})`} />,
+          <ellipse key={`earin${d}`} cx={ex + d * 1} cy={ey + 1} rx={4.5} ry={9} fill={c.shade} opacity={0.6} transform={`rotate(${d * 22} ${ex} ${ey})`} />,
+        )
+      }
+    }
+    // Muzzle (cream) with a black nose; both grow more defined with age.
+    const mrx = headR * (0.42 + g.snout * 0.12)
+    const mry = headR * (0.32 + g.snout * 0.1)
+    front.push(
+      <ellipse key="muzzle" cx={cx} cy={snoutCy} rx={mrx} ry={mry} fill={c.belly} stroke={line} strokeWidth={2} />,
+      <path key="nose" d={`M${cx - 5} ${snoutCy - mry * 0.55} q5 -4 10 0 q1 5 -5 7 q-6 -2 -5 -7 Z`} fill={c.accent} stroke={line} strokeWidth={1.4} strokeLinejoin="round" />,
+    )
   }
 
   // snout / muzzle (dragon, grows)

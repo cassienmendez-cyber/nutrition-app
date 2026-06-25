@@ -33,7 +33,7 @@ export function EvolutionGallery() {
       <div className="card" style={{ marginTop: 14 }}>
         <div className="card-title" style={{ marginBottom: 10 }}>Prestige crowns (after graduating an Elder)</div>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          {SPECIES.slice(0, 5).map((s, i) => (
+          {SPECIES.map((s, i) => (
             <div key={s.id} style={{ textAlign: 'center' }}>
               <div style={{ background: 'linear-gradient(180deg, var(--blue-soft), var(--sage-soft))', borderRadius: 16, padding: 10, display: 'grid', placeItems: 'center' }}>
                 <Creature species={s.id} level={2} size={76} prestige={i + 1} />

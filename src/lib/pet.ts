@@ -11,6 +11,7 @@ export const SPECIES: { id: PetSpecies; label: string; emoji: string }[] = [
   { id: 'fish', label: 'Finn', emoji: '🐟' },
   { id: 'dragon', label: 'Dragon', emoji: '🐲' },
   { id: 'bird', label: 'Birdie', emoji: '🐦' },
+  { id: 'dog', label: 'Shepherd', emoji: '🐕' },
 ]
 
 export function speciesEmoji(species: PetSpecies): string {
