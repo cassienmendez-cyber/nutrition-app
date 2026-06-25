@@ -160,26 +160,24 @@ export function Creature({
   } else if (species === 'frog' && lvl >= 3) {
     behind.push(<ellipse key="pad" cx={cx} cy={FLOOR + 3} rx={torsoRx * 1.6} ry={10} fill={c.accent} stroke={line} strokeWidth={2} opacity={0.5} />)
   } else if (isDog) {
-    // Low, bushy saber tail that swings out to the SIDE and hangs down past the
-    // hip, with a darker tip — fuller with age, and never sticking up like a fin.
-    const bx = cx + torsoRx * 0.8
-    const by = torsoBottom - torsoRy * 0.5
-    const ts = 0.95 + f * 0.45 // bushier with age
-    const tipY = Math.min(FLOOR - 2, by + 30 * ts)
-    const tipX = bx + 16 * ts
+    // A scythe-shaped tail: a bold curved blade that sweeps OUT to the side and
+    // hooks down to a tapered point, with a darker tip. Sits beside the body
+    // (not tucked behind) so the crescent reads clearly. Grows with age.
+    const bx = cx + torsoRx * 0.66 // base, at the hip
+    const by = torsoCy + torsoRy * 0.05
+    const ts = 1.0 + f * 0.4
+    const outX = cx + torsoRx + 26 * ts // belly of the curve, well past the body
+    const midY = by + 22 * ts
+    const tipX = cx + torsoRx + 4 * ts // tip hooks back down-inward
+    const tipY = Math.min(FLOOR + 6, by + 46 * ts)
     const tipCol = darkCoat ? c.shade : c.accent
+    // Outer (convex, right) edge → tip; inner (concave) edge back to the base.
+    const blade = `M${bx} ${by - 9 * ts} C${cx + torsoRx + 6 * ts} ${by - 8 * ts} ${outX} ${by + 6 * ts} ${outX} ${midY} C${outX} ${midY + 16 * ts} ${tipX + 9 * ts} ${tipY - 4 * ts} ${tipX} ${tipY} C${tipX - 7 * ts} ${tipY - 6 * ts} ${bx + 12 * ts} ${midY + 2 * ts} ${bx + 4 * ts} ${by + 16 * ts} C${bx - 1 * ts} ${by + 6 * ts} ${bx - 4 * ts} ${by} ${bx} ${by - 9 * ts} Z`
     behind.push(
-      <path
-        key="tail"
-        d={`M${bx} ${by - 10 * ts} C${bx + 30 * ts} ${by - 6 * ts} ${tipX + 18 * ts} ${(by + tipY) / 2 - 4} ${tipX + 5} ${tipY} C${tipX + 1} ${tipY + 7} ${tipX - 12 * ts} ${tipY + 3} ${tipX - 14 * ts} ${tipY - 8 * ts} C${bx + 6 * ts} ${(by + tipY) / 2 + 2 * ts} ${bx - 6 * ts} ${by + 6 * ts} ${bx} ${by - 10 * ts} Z`}
-        fill={c.body}
-        stroke={line}
-        strokeWidth={LW}
-        strokeLinejoin="round"
-      />,
+      <path key="tail" d={blade} fill={c.body} stroke={line} strokeWidth={LW} strokeLinejoin="round" />,
       <path
         key="tailtip"
-        d={`M${tipX + 5} ${tipY} C${tipX + 1} ${tipY + 7} ${tipX - 12 * ts} ${tipY + 3} ${tipX - 14 * ts} ${tipY - 8 * ts} C${tipX - 9 * ts} ${tipY - 16 * ts} ${tipX + 4} ${tipY - 14 * ts} ${tipX + 9 * ts} ${tipY - 6 * ts} C${tipX + 10 * ts} ${tipY - 1} ${tipX + 8} ${tipY + 2} ${tipX + 5} ${tipY} Z`}
+        d={`M${tipX} ${tipY} C${tipX - 7 * ts} ${tipY - 6 * ts} ${bx + 14 * ts} ${midY + 6 * ts} ${bx + 13 * ts} ${midY} C${tipX} ${midY + 8 * ts} ${tipX + 9 * ts} ${tipY - 4 * ts} ${tipX} ${tipY} Z`}
         fill={tipCol}
         stroke={line}
         strokeWidth={2.2}
