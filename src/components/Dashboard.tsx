@@ -2,6 +2,7 @@ import { useApp } from '../store/AppContext'
 import { cycleInfo, PHASE_COPY } from '../lib/cycle'
 import { dashboardMetrics, fertilityScore } from '../lib/scores'
 import { weeklyInsights } from '../lib/coach'
+import { closestTrophies, TIER_META } from '../lib/achievements'
 import { prettyDate, daysBetween, today } from '../lib/dates'
 import { Ring } from './Ring'
 import { Plant } from './Plant'
@@ -13,6 +14,7 @@ export function Dashboard({ go }: { go: (tab: string) => void }) {
   const metrics = dashboardMetrics(todayLog, state.profile)
   const score = fertilityScore(todayLog, state.profile)
   const insights = weeklyInsights(state)
+  const nextTrophy = closestTrophies(state, 1)[0]
 
   const hour = new Date().getHours()
   const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
@@ -81,6 +83,26 @@ export function Dashboard({ go }: { go: (tab: string) => void }) {
         <div className="card-title">Your momentum</div>
         <Plant />
       </div>
+
+      {/* Next trophy — a visual goal to reach for */}
+      {nextTrophy && (
+        <div className="card" onClick={() => go('trends')} style={{ cursor: 'pointer' }}>
+          <div className="card-title">Next trophy</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Ring value={Math.round(nextTrophy.progress * 100)} size={92} stroke={9} caption="there" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>
+                {nextTrophy.def.emoji} {nextTrophy.def.title}
+              </div>
+              <div className="soft" style={{ fontSize: 14, marginTop: 2 }}>
+                {nextTrophy.remaining} more {nextTrophy.def.unit} to{' '}
+                {TIER_META[nextTrophy.next!.tier].emoji} {TIER_META[nextTrophy.next!.tier].label}
+              </div>
+              <button className="btn ghost small" style={{ marginTop: 8 }}>See all trophies →</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* A coach nudge if there's one */}
       {insights.length > 0 && (

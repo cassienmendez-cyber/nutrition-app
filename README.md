@@ -43,6 +43,12 @@ for pregnancy — instead of yelling *"You have 237 calories left."*
   high-protein, cheap…) → fertility-friendly ideas, not a wall of recipes.
 - **Momentum, not streaks** — a little plant that grows with every healthy
   choice and simply pauses (never dies) on a missed day.
+- **Trophies & goals** — a visual **Goals** tab with tiered 🥉🥈🥇 trophies, each
+  with a progress bar toward the next tier, an "almost there" highlight, a
+  next-trophy ring on the dashboard, and a celebration when you unlock one.
+  Every trophy is *cumulative* — a quiet day never takes one away.
+- **Trends** — 14-day sparklines (protein, movement, water, sleep) plus an
+  editable day-by-day history so you can fill in or fix past days.
 - **AI-style Coach** — an audio-first check-in. Say *"I skipped breakfast, my
   ankle hurts, work was stressful, and all I want is ice cream"* and get
   practical, non-judgmental coaching back.
@@ -78,9 +84,11 @@ for pregnancy — instead of yelling *"You have 237 calories left."*
 server/         Express backend — the Claude-powered coach & weekly review
 src/
   lib/          domain logic — cycle math, scores, exercise engine, coach,
-                grocery, api (backend client + fallback), notifications, export
+                achievements (trophies), grocery, api (backend client + fallback),
+                notifications, export
   store/        React context + reducer, localStorage persistence, demo seed data
-  components/   Dashboard, Exercise, Nutrition, Fertility, Coach, BadDay, Settings…
+  components/   Dashboard, Exercise, Nutrition, Fertility, Trends/Trophies,
+                Coach, BadDay, Settings…
   styles/       one calm global stylesheet (sage / clay / cream)
 public/sw.js    service worker (reminder notifications + installable PWA)
 ```

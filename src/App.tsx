@@ -10,6 +10,7 @@ import { Onboarding } from './components/Onboarding'
 import { BadDay } from './components/BadDay'
 import { Settings } from './components/Settings'
 import { loadReminders, registerServiceWorker, startReminderScheduler } from './lib/notifications'
+import { detectNewTrophy, TIER_META, type EarnedEvent } from './lib/achievements'
 
 type Tab = 'today' | 'move' | 'eat' | 'cycle' | 'trends' | 'coach'
 
@@ -18,7 +19,7 @@ const TABS: { key: Tab; ico: string; label: string }[] = [
   { key: 'move', ico: '🤸', label: 'Move' },
   { key: 'eat', ico: '🥗', label: 'Eat' },
   { key: 'cycle', ico: '🌸', label: 'Cycle' },
-  { key: 'trends', ico: '📈', label: 'Trends' },
+  { key: 'trends', ico: '🏆', label: 'Goals' },
   { key: 'coach', ico: '💬', label: 'Coach' },
 ]
 
@@ -27,12 +28,23 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('today')
   const [badDayOpen, setBadDayOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [celebration, setCelebration] = useState<EarnedEvent | null>(null)
 
   // Register the service worker and resume reminders if the user enabled them.
   useEffect(() => {
     registerServiceWorker()
     if (loadReminders().enabled) startReminderScheduler()
   }, [])
+
+  // Celebrate the moment a trophy tier is unlocked (first run just baselines).
+  useEffect(() => {
+    const earned = detectNewTrophy(state)
+    if (earned) {
+      setCelebration(earned)
+      const t = setTimeout(() => setCelebration(null), 5500)
+      return () => clearTimeout(t)
+    }
+  }, [state])
 
   if (!state.onboarded) return <Onboarding />
 
@@ -65,6 +77,17 @@ export default function App() {
       {tab === 'cycle' && <Fertility />}
       {tab === 'trends' && <Trends />}
       {tab === 'coach' && <Coach />}
+
+      {/* Trophy unlock celebration */}
+      {celebration && (
+        <div className="trophy-toast" role="status" onClick={() => setCelebration(null)}>
+          <span className="big">{celebration.def.emoji}</span>
+          <div>
+            <div className="t-head">{TIER_META[celebration.tier].emoji} {TIER_META[celebration.tier].label} unlocked!</div>
+            <div className="t-body">{celebration.def.title} — {celebration.def.blurb.toLowerCase()}.</div>
+          </div>
+        </div>
+      )}
 
       {/* The Bad Day button — always within reach */}
       <button className="fab" title="Having a bad day?" aria-label="Having a bad day? Switch to support mode" onClick={() => setBadDayOpen(true)}>

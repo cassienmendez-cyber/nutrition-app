@@ -5,7 +5,32 @@ import { pregnancyPrepScore } from '../lib/scores'
 import { weekDays } from '../lib/coach'
 import { BODY_FEEL_OPTIONS } from '../lib/exercise'
 import { Plant } from './Plant'
+import { Trophies } from './Trophies'
 import type { DayLog, ISODate } from '../types'
+
+// The "Goals" tab is a hub: trophies front and centre (the visual, reach-for-it
+// progress), with the longitudinal trend charts a tap away.
+export function Trends() {
+  const [view, setView] = useState<'trophies' | 'trends'>('trophies')
+  return (
+    <div className="screen">
+      <div className="screen-head">
+        <div className="eyebrow">Goals</div>
+        <h1>{view === 'trophies' ? 'Your trophies' : 'Your evidence'}</h1>
+        <p>
+          {view === 'trophies'
+            ? 'Goals to reach and watch fill up — every one only moves forward.'
+            : 'Not weight on a scale — proof, over time, that you’re becoming healthier.'}
+        </p>
+      </div>
+      <div className="seg" style={{ marginBottom: 16 }}>
+        <button className={view === 'trophies' ? 'on' : ''} onClick={() => setView('trophies')}>🏆 Trophies</button>
+        <button className={view === 'trends' ? 'on' : ''} onClick={() => setView('trends')}>📈 Trends</button>
+      </div>
+      {view === 'trophies' ? <Trophies /> : <TrendCharts />}
+    </div>
+  )
+}
 
 // Sparkbars — a tiny, dependency-free bar chart. The whole app is about
 // "building evidence over time," so a longitudinal view is core, not decoration.
@@ -60,7 +85,7 @@ function TrendCard({
   )
 }
 
-export function Trends() {
+function TrendCharts() {
   const { state } = useApp()
   const dates = lastNDays(14)
   const days = dates.map((d) => state.days[d])
@@ -73,13 +98,7 @@ export function Trends() {
   const { score } = pregnancyPrepScore(weekDays(state), state.profile)
 
   return (
-    <div className="screen">
-      <div className="screen-head">
-        <div className="eyebrow">Trends</div>
-        <h1>Your evidence</h1>
-        <p>Not weight on a scale — proof, over time, that you’re becoming healthier.</p>
-      </div>
-
+    <>
       <div className="card">
         <div className="card-title">Momentum</div>
         <Plant />
@@ -105,7 +124,7 @@ export function Trends() {
         .map((date) => (
           <HistoryRow key={date} date={date} day={state.days[date]} />
         ))}
-    </div>
+    </>
   )
 }
 

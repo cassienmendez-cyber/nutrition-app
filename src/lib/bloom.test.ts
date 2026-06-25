@@ -5,6 +5,7 @@ import { proteinMetric, waterMetric, fertilityScore, pregnancyPrepScore } from '
 import { buildWorkout } from './exercise'
 import { isActiveDay, weekDays, weeklyInsights, streakFreeMomentum, respondToCheckIn } from './coach'
 import { buildGroceryPlan, suggestMeals } from './grocery'
+import { computeTrophy, trophyStats, closestTrophies, TROPHIES } from './achievements'
 import type { AppState, DayLog, EatingReason, Meal, MealSlot, Profile } from '../types'
 
 // --- fixtures --------------------------------------------------------------
@@ -206,5 +207,65 @@ describe('grocery', () => {
     const ideas = suggestMeals('chicken')
     expect(ideas.length).toBe(3)
     expect(ideas.every((i) => typeof i.name === 'string')).toBe(true)
+  })
+})
+
+// --- achievements ----------------------------------------------------------
+
+describe('trophies', () => {
+  const prenatal = TROPHIES.find((t) => t.id === 'prenatal')!
+
+  it('reports no tier earned below the first target', () => {
+    const s = stateWith([day('2026-03-10', { prenatalTaken: true })]) // 1 day, bronze needs 7
+    const p = computeTrophy(prenatal, s)
+    expect(p.earned).toBe(false)
+    expect(p.earnedTier).toBe(null)
+    expect(p.next?.target).toBe(7)
+    expect(p.remaining).toBe(6)
+    expect(p.progress).toBeCloseTo(1 / 7)
+  })
+
+  it('earns a tier and tracks progress toward the next', () => {
+    // 8 prenatal days → bronze (7) earned, working toward silver (30).
+    const days = Array.from({ length: 8 }, (_, i) => day(`2026-03-${10 + i}`, { prenatalTaken: true }))
+    const p = computeTrophy(prenatal, stateWith(days))
+    expect(p.earnedTier).toBe('bronze')
+    expect(p.next?.tier).toBe('silver')
+    expect(p.maxed).toBe(false)
+    expect(p.progress).toBeCloseTo((8 - 7) / (30 - 7))
+  })
+
+  it('maxes out at the gold target', () => {
+    const days = Array.from({ length: 100 }, (_, i) => day(`d${i}`, { prenatalTaken: true }))
+    const p = computeTrophy(prenatal, stateWith(days))
+    expect(p.earnedTier).toBe('gold')
+    expect(p.maxed).toBe(true)
+    expect(p.progress).toBe(1)
+    expect(p.next).toBe(null)
+  })
+
+  it('never regresses on a missed day (cumulative, not a streak)', () => {
+    const withGap = stateWith([
+      day('2026-03-10', { prenatalTaken: true }),
+      day('2026-03-11'), // missed
+      day('2026-03-12', { prenatalTaken: true }),
+    ])
+    expect(computeTrophy(prenatal, withGap).value).toBe(2) // gap doesn't reset it
+  })
+
+  it('closest trophies are sorted by how near they are and exclude maxed', () => {
+    const s = stateWith([day('2026-03-10', { meals: [meal('lunch', { hasProtein: true })], waterGlasses: 9 })])
+    const closest = closestTrophies(s, 3)
+    expect(closest.length).toBeLessThanOrEqual(3)
+    expect(closest.every((t) => !t.maxed)).toBe(true)
+    for (let i = 1; i < closest.length; i++) {
+      expect(closest[i - 1].progress).toBeGreaterThanOrEqual(closest[i].progress)
+    }
+  })
+
+  it('stats count earned trophies out of the full set', () => {
+    const stats = trophyStats(stateWith([]))
+    expect(stats.total).toBe(TROPHIES.length)
+    expect(stats.earned).toBe(0)
   })
 })
