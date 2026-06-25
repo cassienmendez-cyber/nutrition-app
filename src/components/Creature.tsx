@@ -160,28 +160,37 @@ export function Creature({
   } else if (species === 'frog' && lvl >= 3) {
     behind.push(<ellipse key="pad" cx={cx} cy={FLOOR + 3} rx={torsoRx * 1.6} ry={10} fill={c.accent} stroke={line} strokeWidth={2} opacity={0.5} />)
   } else if (isDog) {
-    // A scythe-shaped tail: a bold curved blade that sweeps OUT to the side and
-    // hooks down to a tapered point, with a darker tip. Sits beside the body
-    // (not tucked behind) so the crescent reads clearly. Grows with age.
-    const bx = cx + torsoRx * 0.66 // base, at the hip
-    const by = torsoCy + torsoRy * 0.05
-    const ts = 1.0 + f * 0.4
-    const outX = cx + torsoRx + 26 * ts // belly of the curve, well past the body
-    const midY = by + 22 * ts
-    const tipX = cx + torsoRx + 4 * ts // tip hooks back down-inward
-    const tipY = Math.min(FLOOR + 6, by + 46 * ts)
+    // A slim crescent-MOON tail: two curves that taper to points at both ends,
+    // thin through the middle, curving down past the hip with a darker tip.
+    const ts = 0.9 + f * 0.32
+    const t1x = cx + torsoRx * 0.6 // upper point, near the hip
+    const t1y = torsoCy - torsoRy * 0.18
+    const t2x = cx + torsoRx * 0.92 // lower point
+    const t2y = Math.min(FLOOR + 2, torsoCy + torsoRy + 6 * ts)
+    const ocx = cx + torsoRx + 26 * ts // outer (convex) control — far out
+    const ocy = torsoCy + torsoRy * 0.46
+    const icx = cx + torsoRx + 13 * ts // inner control — only a touch in, so the moon stays SLIM
+    const icy = torsoCy + torsoRy * 0.52
     const tipCol = darkCoat ? c.shade : c.accent
-    // Outer (convex, right) edge → tip; inner (concave) edge back to the base.
-    const blade = `M${bx} ${by - 9 * ts} C${cx + torsoRx + 6 * ts} ${by - 8 * ts} ${outX} ${by + 6 * ts} ${outX} ${midY} C${outX} ${midY + 16 * ts} ${tipX + 9 * ts} ${tipY - 4 * ts} ${tipX} ${tipY} C${tipX - 7 * ts} ${tipY - 6 * ts} ${bx + 12 * ts} ${midY + 2 * ts} ${bx + 4 * ts} ${by + 16 * ts} C${bx - 1 * ts} ${by + 6 * ts} ${bx - 4 * ts} ${by} ${bx} ${by - 9 * ts} Z`
     behind.push(
-      <path key="tail" d={blade} fill={c.body} stroke={line} strokeWidth={LW} strokeLinejoin="round" />,
       <path
+        key="tail"
+        d={`M${t1x} ${t1y} Q${ocx} ${ocy} ${t2x} ${t2y} Q${icx} ${icy} ${t1x} ${t1y} Z`}
+        fill={c.body}
+        stroke={line}
+        strokeWidth={LW}
+        strokeLinejoin="round"
+      />,
+      <ellipse
         key="tailtip"
-        d={`M${tipX} ${tipY} C${tipX - 7 * ts} ${tipY - 6 * ts} ${bx + 14 * ts} ${midY + 6 * ts} ${bx + 13 * ts} ${midY} C${tipX} ${midY + 8 * ts} ${tipX + 9 * ts} ${tipY - 4 * ts} ${tipX} ${tipY} Z`}
+        cx={(t2x + icx) / 2 - 2 * ts}
+        cy={t2y - 9 * ts}
+        rx={5 * ts}
+        ry={9 * ts}
         fill={tipCol}
         stroke={line}
         strokeWidth={2.2}
-        strokeLinejoin="round"
+        transform={`rotate(34 ${(t2x + icx) / 2 - 2 * ts} ${t2y - 9 * ts})`}
       />,
     )
   }
