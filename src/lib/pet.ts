@@ -1,64 +1,48 @@
 import type { Pet, PetSpecies } from '../types'
 
 // The pet (companion) engine. Pure, deterministic helpers so the UI and tests
-// agree. Growth is permanent and only ever increases; fullness/hydration decay
-// gently between visits but the creature never dies — it just gets sleepy.
+// agree. The creature evolves through six stages; each stage needs its OWN pool
+// of points (it resets when you evolve — not a running total). It only ever
+// grows, and never dies — at most it gets a little sleepy.
 
 export const SPECIES: { id: PetSpecies; label: string; emoji: string }[] = [
+  { id: 'sprout', label: 'Sprout', emoji: '🌱' },
   { id: 'frog', label: 'Frog', emoji: '🐸' },
-  { id: 'turtle', label: 'Turtle', emoji: '🐢' },
-  { id: 'axolotl', label: 'Axolotl', emoji: '🦎' },
-  { id: 'whale', label: 'Whale', emoji: '🐳' },
+  { id: 'fish', label: 'Finn', emoji: '🐟' },
   { id: 'dragon', label: 'Dragon', emoji: '🐲' },
-  { id: 'chick', label: 'Chick', emoji: '🐥' },
+  { id: 'bird', label: 'Birdie', emoji: '🐦' },
 ]
 
 export function speciesEmoji(species: PetSpecies): string {
   return SPECIES.find((s) => s.id === species)?.emoji ?? '🐸'
 }
 
-export interface Stage {
-  name: string
-  min: number
-  size: number // rendered emoji size in px
-  aura?: boolean
-}
+// Six life stages. Points needed to advance FROM each stage to the next:
+export const LEVELS = ['Baby', 'Toddler', 'Adolescent', 'Young Adult', 'Adult', 'Elder'] as const
+export const THRESHOLDS = [100, 150, 200, 300, 500] // baby→toddler … adult→elder
+export const MAX_LEVEL = LEVELS.length - 1 // 5 = Elder
 
-// Growth stages — egg first (same for everyone), then the chosen species grows.
-export const STAGES: Stage[] = [
-  { name: 'Egg', min: 0, size: 66 },
-  { name: 'Hatchling', min: 40, size: 56 },
-  { name: 'Little one', min: 120, size: 74 },
-  { name: 'Growing', min: 260, size: 92 },
-  { name: 'Big', min: 480, size: 110 },
-  { name: 'Radiant', min: 800, size: 128, aura: true },
-]
-
-export interface StageInfo {
+export interface LevelInfo {
   index: number
-  stage: Stage
-  next: Stage | null
+  name: string
+  next: string | null
+  needed: number // points this stage requires (0 if maxed)
+  into: number // points collected so far this stage
   progress: number // 0–1 toward the next stage (1 if maxed)
 }
 
-export function petStage(growth: number): StageInfo {
-  let index = 0
-  for (let i = 0; i < STAGES.length; i++) if (growth >= STAGES[i].min) index = i
-  const stage = STAGES[index]
-  const next = STAGES[index + 1] ?? null
-  const progress = next ? Math.min(1, (growth - stage.min) / (next.min - stage.min)) : 1
-  return { index, stage, next, progress }
-}
-
-// What the creature looks like right now: an egg until it hatches, then its
-// species emoji at a size that grows with each stage.
-export function petAppearance(pet: Pet): { emoji: string; size: number; aura: boolean; stageName: string } {
-  const { index, stage } = petStage(pet.growth)
+export function petLevelInfo(pet: Pet): LevelInfo {
+  const index = Math.max(0, Math.min(MAX_LEVEL, pet.level))
+  const maxed = index >= MAX_LEVEL
+  const needed = maxed ? 0 : THRESHOLDS[index]
+  const into = pet.levelPoints
   return {
-    emoji: index === 0 ? '🥚' : speciesEmoji(pet.species),
-    size: stage.size,
-    aura: !!stage.aura,
-    stageName: stage.name,
+    index,
+    name: LEVELS[index],
+    next: maxed ? null : LEVELS[index + 1],
+    needed,
+    into,
+    progress: maxed ? 1 : Math.min(1, into / needed),
   }
 }
 
@@ -99,7 +83,7 @@ export interface ShopItem {
   name: string
   desc: string
   cost: number
-  growth: number
+  growth: number // points added to the current stage's pool
   fullness: number
   hydration: number
 }
@@ -113,12 +97,22 @@ export const SHOP: ShopItem[] = [
   { id: 'feast', emoji: '🍱', name: 'Feast', desc: 'A full, joyful spread', cost: 70, growth: 60, fullness: 60, hydration: 20 },
 ]
 
-// Feed an item: settle decay first, then apply its effects and charge the cost.
+// Feed an item: settle decay, add its growth to the current stage's pool (which
+// may cross one or more level thresholds, carrying the remainder), top up the
+// meters, and charge the cost.
 export function applyFeed(pet: Pet, item: ShopItem, now: number): Pet {
   const settled = settlePet(pet, now)
+  let level = settled.level
+  let pool = settled.levelPoints + item.growth
+  while (level < MAX_LEVEL && pool >= THRESHOLDS[level]) {
+    pool -= THRESHOLDS[level]
+    level += 1
+  }
+  if (level >= MAX_LEVEL) pool = 0 // Elder: fully grown, no further pool
   return {
     ...settled,
-    growth: settled.growth + item.growth,
+    level,
+    levelPoints: pool,
     fullness: clamp(settled.fullness + item.fullness),
     hydration: clamp(settled.hydration + item.hydration),
     spent: settled.spent + item.cost,
@@ -127,27 +121,26 @@ export function applyFeed(pet: Pet, item: ShopItem, now: number): Pet {
 }
 
 export function makeDefaultPet(now: number): Pet {
-  return { name: 'Pip', species: 'frog', growth: 0, spent: 0, fullness: 55, hydration: 55, lastTick: now }
+  return { name: 'Pip', species: 'frog', level: 0, levelPoints: 0, spent: 0, fullness: 55, hydration: 55, lastTick: now }
 }
 
-// Detect when the creature reaches a new growth stage, for a celebration toast.
+// Detect when the creature evolves to a new stage, for a celebration toast.
 // First call just records a baseline so loading existing data doesn't fire one.
-const PET_STAGE_KEY = 'bloom.pet.stage.v1'
+const PET_LEVEL_KEY = 'bloom.pet.level.v1'
 
-export function detectPetStageUp(growth: number): Stage | null {
-  const idx = petStage(growth).index
+export function detectPetLevelUp(level: number): string | null {
   let prev: number | null = null
   try {
-    const raw = localStorage.getItem(PET_STAGE_KEY)
+    const raw = localStorage.getItem(PET_LEVEL_KEY)
     if (raw != null) prev = JSON.parse(raw)
   } catch {
     /* ignore */
   }
   try {
-    localStorage.setItem(PET_STAGE_KEY, JSON.stringify(idx))
+    localStorage.setItem(PET_LEVEL_KEY, JSON.stringify(level))
   } catch {
     /* ignore */
   }
-  if (prev == null || idx <= prev) return null
-  return STAGES[idx]
+  if (prev == null || level <= prev) return null
+  return LEVELS[Math.min(MAX_LEVEL, level)]
 }

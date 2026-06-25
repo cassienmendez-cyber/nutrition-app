@@ -527,16 +527,42 @@ input:focus, textarea:focus, select:focus {
   place-items: center;
   overflow: hidden;
 }
-.pet-emoji {
-  line-height: 1;
+.pet-stage {
   position: relative;
   z-index: 2;
   animation: bob 3.2s ease-in-out infinite;
   filter: drop-shadow(0 8px 6px rgba(24, 36, 43, 0.16));
 }
 @keyframes bob {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-12px) rotate(1deg); }
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-12px) rotate(1.5deg); }
+}
+/* The cute "just fed / cared for" reaction */
+.pet-stage.fed { animation: fedBounce 0.6s ease; }
+@keyframes fedBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.16) translateY(-6px); }
+  55% { transform: scale(0.94); }
+  75% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.feed-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.feed-fx .fx {
+  position: absolute;
+  bottom: 46%;
+  font-size: 20px;
+  opacity: 0;
+  animation: floatUp 1.05s ease-out forwards;
+}
+@keyframes floatUp {
+  0% { transform: translateY(10px) scale(0.6); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translateY(-70px) scale(1.1); opacity: 0; }
 }
 .pet-aura {
   position: absolute;
@@ -576,6 +602,53 @@ input:focus, textarea:focus, select:focus {
 }
 .meters { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
 .meter .bar { margin-top: 4px; }
+
+.species-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.species-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  transition: all 0.12s;
+}
+.species-pick.selected {
+  border-color: var(--sage);
+  background: var(--sage-soft);
+  color: var(--sage-deep);
+}
+.evo-row {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 10px 2px 4px;
+  margin-top: 6px;
+}
+.evo-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1 0 auto;
+  min-width: 54px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  opacity: 0.95;
+}
+.evo-step.future { filter: grayscale(0.7); opacity: 0.5; }
+.evo-step.now { color: var(--sage-deep); }
+.evo-step.now span { background: var(--sage-soft); border-radius: 999px; padding: 1px 7px; }
 
 .shop-item {
   display: flex;

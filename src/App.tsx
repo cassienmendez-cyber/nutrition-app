@@ -11,7 +11,8 @@ import { BadDay } from './components/BadDay'
 import { Settings } from './components/Settings'
 import { loadReminders, registerServiceWorker, startReminderScheduler } from './lib/notifications'
 import { detectNewTrophy, TIER_META, type EarnedEvent } from './lib/achievements'
-import { detectPetStageUp, type Stage } from './lib/pet'
+import { detectPetLevelUp } from './lib/pet'
+import { Creature } from './components/Creature'
 
 type Tab = 'today' | 'move' | 'eat' | 'cycle' | 'trends' | 'coach'
 
@@ -30,7 +31,7 @@ export default function App() {
   const [badDayOpen, setBadDayOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [celebration, setCelebration] = useState<EarnedEvent | null>(null)
-  const [grewUp, setGrewUp] = useState<Stage | null>(null)
+  const [grewUp, setGrewUp] = useState<string | null>(null)
 
   // Register the service worker and resume reminders if the user enabled them.
   useEffect(() => {
@@ -48,15 +49,15 @@ export default function App() {
     }
   }, [state])
 
-  // Celebrate when the companion reaches a new growth stage.
+  // Celebrate when the companion evolves to a new life stage.
   useEffect(() => {
-    const stage = detectPetStageUp(state.pet.growth)
-    if (stage) {
-      setGrewUp(stage)
-      const t = setTimeout(() => setGrewUp(null), 5500)
+    const stageName = detectPetLevelUp(state.pet.level)
+    if (stageName) {
+      setGrewUp(stageName)
+      const t = setTimeout(() => setGrewUp(null), 6000)
       return () => clearTimeout(t)
     }
-  }, [state.pet.growth])
+  }, [state.pet.level])
 
   if (!state.onboarded) return <Onboarding />
 
@@ -101,12 +102,14 @@ export default function App() {
         </div>
       )}
 
-      {/* Companion grew up */}
+      {/* Companion evolved */}
       {grewUp && (
         <div className="trophy-toast" role="status" onClick={() => setGrewUp(null)} style={{ background: 'linear-gradient(135deg, var(--blue) 0%, var(--sage-deep) 100%)' }}>
-          <span className="big">{grewUp.name === 'Radiant' ? '🌟' : '🎉'}</span>
+          <span style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 14, padding: 4, display: 'flex' }}>
+            <Creature species={state.pet.species} level={state.pet.level} size={48} happy />
+          </span>
           <div>
-            <div className="t-head">{state.pet.name} grew to {grewUp.name}!</div>
+            <div className="t-head">{grewUp === 'Elder' ? '🌟 ' : '🎉 '}{state.pet.name} evolved to {grewUp}!</div>
             <div className="t-body">Your care is helping them flourish. Keep it up. 💚</div>
           </div>
         </div>

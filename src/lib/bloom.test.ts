@@ -7,7 +7,7 @@ import { isActiveDay, weekDays, weeklyInsights, streakFreeMomentum, respondToChe
 import { buildGroceryPlan, suggestMeals } from './grocery'
 import { computeTrophy, trophyStats, closestTrophies, TROPHIES } from './achievements'
 import { pointsForDay, totalEarnedPoints, availablePoints } from './points'
-import { petStage, petAppearance, settlePet, applyFeed, makeDefaultPet, SHOP } from './pet'
+import { petLevelInfo, settlePet, applyFeed, makeDefaultPet, SHOP, THRESHOLDS, MAX_LEVEL } from './pet'
 import type { AppState, DayLog, EatingReason, Meal, MealSlot, Pet, Profile } from '../types'
 
 // --- fixtures --------------------------------------------------------------
@@ -299,19 +299,47 @@ describe('points', () => {
 // --- pet engine ------------------------------------------------------------
 
 describe('pet', () => {
-  it('starts as an egg and hatches into its species as it grows', () => {
-    expect(petAppearance(makeDefaultPet(0)).emoji).toBe('🥚')
-    const grown = { ...makeDefaultPet(0), species: 'turtle' as const, growth: 130 }
-    expect(petAppearance(grown).emoji).toBe('🐢')
-    expect(petStage(130).stage.name).toBe('Little one')
+  it('starts as a Baby with an empty pool toward Toddler', () => {
+    const info = petLevelInfo(makeDefaultPet(0))
+    expect(info.name).toBe('Baby')
+    expect(info.next).toBe('Toddler')
+    expect(info.needed).toBe(THRESHOLDS[0]) // 100
+    expect(info.into).toBe(0)
   })
 
-  it('feeding spends points-worth of cost, raises growth, and never overfills past 100', () => {
+  it('feeding fills the current stage pool and never overfills meters past 100', () => {
     const fish = SHOP.find((i) => i.id === 'fish')!
     const fed = applyFeed({ ...makeDefaultPet(0), fullness: 90 }, fish, 0)
-    expect(fed.growth).toBe(fish.growth)
+    expect(fed.levelPoints).toBe(fish.growth) // still Baby, pool grew
+    expect(fed.level).toBe(0)
     expect(fed.spent).toBe(fish.cost)
     expect(fed.fullness).toBeLessThanOrEqual(100)
+  })
+
+  it('evolves when the per-stage pool is met, carrying the remainder', () => {
+    // Baby needs 100; a 130-growth feed evolves to Toddler with 30 carried over.
+    const big = { id: 'x', emoji: '✨', name: 'x', desc: 'x', cost: 100, growth: 130, fullness: 0, hydration: 0 }
+    const fed = applyFeed(makeDefaultPet(0), big, 0)
+    expect(fed.level).toBe(1)
+    expect(petLevelInfo(fed).name).toBe('Toddler')
+    expect(fed.levelPoints).toBe(30)
+  })
+
+  it('each stage needs its OWN pool — not a running total', () => {
+    // 100 reaches Toddler (pool resets); the next stage still needs its full 150.
+    const toToddler = { id: 'a', emoji: '✨', name: 'a', desc: '', cost: 0, growth: 100, fullness: 0, hydration: 0 }
+    const fed = applyFeed(makeDefaultPet(0), toToddler, 0)
+    expect(fed.level).toBe(1)
+    expect(fed.levelPoints).toBe(0)
+    expect(petLevelInfo(fed).needed).toBe(150) // toddler→adolescent
+  })
+
+  it('caps at Elder and never exceeds the max level', () => {
+    const huge = { id: 'h', emoji: '✨', name: 'h', desc: '', cost: 0, growth: 99999, fullness: 0, hydration: 0 }
+    const fed = applyFeed(makeDefaultPet(0), huge, 0)
+    expect(fed.level).toBe(MAX_LEVEL)
+    expect(petLevelInfo(fed).name).toBe('Elder')
+    expect(petLevelInfo(fed).progress).toBe(1)
   })
 
   it('decays gently over time but is capped and never goes negative', () => {
@@ -323,8 +351,8 @@ describe('pet', () => {
     expect(wayLater.fullness).toBeGreaterThanOrEqual(0)
   })
 
-  it('growth only moves forward — a missed feed never lowers it', () => {
-    const pet = { ...makeDefaultPet(0), growth: 200 }
-    expect(settlePet(pet, 9_999_999_999).growth).toBe(200)
+  it('the level only moves forward — a missed feed never lowers it', () => {
+    const pet = { ...makeDefaultPet(0), level: 2, levelPoints: 40 }
+    expect(settlePet(pet, 9_999_999_999).level).toBe(2)
   })
 })

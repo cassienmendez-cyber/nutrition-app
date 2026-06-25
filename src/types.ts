@@ -106,12 +106,16 @@ export interface Profile {
 // it never dies — at most it gets a little sleepy until you feed it.
 // ---------------------------------------------------------------------------
 
-export type PetSpecies = 'frog' | 'turtle' | 'axolotl' | 'whale' | 'dragon' | 'chick'
+export type PetSpecies = 'sprout' | 'frog' | 'fish' | 'dragon' | 'bird'
 
 export interface Pet {
   name: string
   species: PetSpecies
-  growth: number // permanent — drives the growth stage
+  // Growth is a fresh pool per stage, not a running total: each level needs its
+  // own batch of points (100 → 150 → 200 → 300 → 500), and the pool resets when
+  // the creature evolves to the next stage.
+  level: number // 0 Baby … 5 Elder
+  levelPoints: number // points collected toward the NEXT level (resets on evolve)
   spent: number // points spent feeding (available = earned − spent)
   fullness: number // 0–100
   hydration: number // 0–100

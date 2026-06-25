@@ -8,7 +8,7 @@ import {
 } from 'react'
 import type { AppState, CheckIn, DayLog, ISODate, Meal, Pet, Profile } from '../types'
 import { today } from '../lib/dates'
-import { makeDefaultPet, applyFeed, type ShopItem } from '../lib/pet'
+import { makeDefaultPet, applyFeed, THRESHOLDS, MAX_LEVEL, type ShopItem } from '../lib/pet'
 import { availablePoints } from '../lib/points'
 import { emptyState, seedState } from './seed'
 
@@ -50,9 +50,40 @@ function migrate(state: AppState): AppState {
   for (const [date, d] of Object.entries(state.days)) {
     days[date] = { ...d, date, pain: d.pain ?? [], meals: d.meals ?? [], checkIns: d.checkIns ?? [] }
   }
-  // Pet was added after the first releases — give older backups a companion.
-  const pet: Pet = state.pet ? { ...makeDefaultPet(Date.now()), ...state.pet } : makeDefaultPet(Date.now())
-  return { onboarded: state.onboarded ?? true, profile, pet, days }
+  return { onboarded: state.onboarded ?? true, profile, pet: migratePet(state.pet), days }
+}
+
+// Older pets used a single `growth` total and a larger species set. Convert to
+// the per-stage level model and remap retired species to the current five.
+const SPECIES_REMAP: Record<string, Pet['species']> = {
+  sprout: 'sprout', frog: 'frog', fish: 'fish', dragon: 'dragon', bird: 'bird',
+  turtle: 'frog', axolotl: 'fish', whale: 'fish', chick: 'bird',
+}
+
+function migratePet(raw: unknown): Pet {
+  const base = makeDefaultPet(Date.now())
+  if (!raw || typeof raw !== 'object') return base
+  const old = raw as Record<string, unknown>
+  const species = SPECIES_REMAP[String(old.species)] ?? base.species
+  const common = {
+    name: typeof old.name === 'string' ? old.name : base.name,
+    species,
+    spent: typeof old.spent === 'number' ? old.spent : 0,
+    fullness: typeof old.fullness === 'number' ? old.fullness : base.fullness,
+    hydration: typeof old.hydration === 'number' ? old.hydration : base.hydration,
+    lastTick: typeof old.lastTick === 'number' ? old.lastTick : Date.now(),
+  }
+  if (typeof old.level === 'number') {
+    return { ...common, level: old.level, levelPoints: typeof old.levelPoints === 'number' ? old.levelPoints : 0 }
+  }
+  // Convert a legacy cumulative `growth` total into level + remaining pool.
+  let pool = typeof old.growth === 'number' ? old.growth : 0
+  let level = 0
+  while (level < MAX_LEVEL && pool >= THRESHOLDS[level]) {
+    pool -= THRESHOLDS[level]
+    level += 1
+  }
+  return { ...common, level, levelPoints: level >= MAX_LEVEL ? 0 : pool }
 }
 
 function load(): AppState {

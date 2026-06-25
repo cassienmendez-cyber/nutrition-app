@@ -12,12 +12,13 @@ import {
 } from '../lib/notifications'
 import { exportJSON, exportCSV, importJSON } from '../lib/exportData'
 import { coachStatus } from '../lib/api'
-import { SPECIES, petStage, speciesEmoji } from '../lib/pet'
+import { SPECIES, petLevelInfo, LEVELS } from '../lib/pet'
+import { Creature } from './Creature'
 
 export function Settings({ onClose }: { onClose: () => void }) {
   const { state, importState, reset, setProfile, setPet } = useApp()
   const { profile, pet } = state
-  const petStageInfo = petStage(pet.growth)
+  const lvl = petLevelInfo(pet)
   const [reminders, setReminders] = useState<ReminderSettings>(loadReminders())
   const [perm, setPerm] = useState(permission())
   const [claude, setClaude] = useState<boolean | null>(null)
@@ -84,26 +85,41 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <div className="card">
             <div className="card-title">Your companion</div>
             <div className="stat-row">
-              <span className="emoji" style={{ fontSize: 28 }}>{petStageInfo.index === 0 ? '🥚' : speciesEmoji(pet.species)}</span>
+              <span style={{ width: 52, display: 'flex', justifyContent: 'center' }}><Creature species={pet.species} level={lvl.index} size={46} /></span>
               <div className="body">
                 <div className="name">{pet.name}</div>
-                <div className="detail">{petStageInfo.stage.name} · grown {Math.round(pet.growth)}</div>
+                <div className="detail">
+                  {lvl.name}{lvl.next ? ` · ${Math.round(lvl.into)}/${lvl.needed} to ${lvl.next}` : ' · fully grown 🌟'}
+                </div>
               </div>
             </div>
-            <div className="field" style={{ marginTop: 10 }}>
+
+            {/* Evolution line — see every life stage */}
+            <div className="evo-row">
+              {LEVELS.map((name, i) => (
+                <div key={name} className={`evo-step ${i === lvl.index ? 'now' : ''} ${i > lvl.index ? 'future' : ''}`}>
+                  <Creature species={pet.species} level={i} size={38} />
+                  <span>{name}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="field" style={{ marginTop: 12 }}>
               <label>Name</label>
               <input type="text" value={pet.name} maxLength={16} onChange={(e) => setPet({ name: e.target.value })} />
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Species</label>
-              <div className="chip-row">
+              <label>Species (changes who you’re raising)</label>
+              <div className="species-grid">
                 {SPECIES.map((s) => (
                   <button
                     key={s.id}
-                    className={`chip ${pet.species === s.id ? 'selected' : ''}`}
+                    className={`species-pick ${pet.species === s.id ? 'selected' : ''}`}
                     onClick={() => setPet({ species: s.id })}
+                    aria-label={s.label}
                   >
-                    <span className="emoji">{s.emoji}</span> {s.label}
+                    <Creature species={s.id} level={lvl.index} size={44} />
+                    <span>{s.label}</span>
                   </button>
                 ))}
               </div>

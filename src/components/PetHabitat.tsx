@@ -1,23 +1,38 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store/AppContext'
 import { availablePoints } from '../lib/points'
-import { petAppearance, petStage, happiness, mood, settlePet } from '../lib/pet'
+import { petLevelInfo, happiness, mood, settlePet } from '../lib/pet'
+import { Creature } from './Creature'
 import { Shop } from './Shop'
 
-// The companion's home — the heart of the game. A little scene with the creature
-// bobbing in it, its growth toward the next stage, and gentle fullness / water /
-// happiness meters you keep topped up by feeding it from the pantry.
+// The companion's home — the heart of the game. The creature physically evolves
+// here; feeding it plays a cute care animation (bounce, hearts, sparkles, happy
+// face + a haptic buzz) and fills its current life-stage's point pool.
 export function PetHabitat() {
   const { state } = useApp()
   const [shopOpen, setShopOpen] = useState(false)
+  const [fed, setFed] = useState(false)
+  const prevSpent = useRef<number | null>(null)
+
+  // A feed happened whenever `spent` ticks up → play the care animation.
+  useEffect(() => {
+    if (prevSpent.current !== null && state.pet.spent > prevSpent.current) {
+      setFed(true)
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate?.(28)
+      const t = setTimeout(() => setFed(false), 1100)
+      prevSpent.current = state.pet.spent
+      return () => clearTimeout(t)
+    }
+    prevSpent.current = state.pet.spent
+  }, [state.pet.spent])
 
   // Reflect gentle decay since the last feed (display only — never punishing).
   const pet = settlePet(state.pet, Date.now())
-  const look = petAppearance(pet)
-  const stage = petStage(pet.growth)
+  const lvl = petLevelInfo(pet)
   const m = mood(pet)
   const happy = happiness(pet)
   const points = availablePoints(state)
+  const creatureSize = 92 + lvl.index * 7
 
   return (
     <div className="card flush habitat">
@@ -25,26 +40,34 @@ export function PetHabitat() {
         {[0, 1, 2, 3, 4].map((i) => (
           <span key={i} className="bubble" style={{ left: `${12 + i * 19}%`, animationDelay: `${i * 1.3}s`, width: 6 + (i % 3) * 4, height: 6 + (i % 3) * 4 }} />
         ))}
-        {look.aura && <span className="pet-aura" />}
-        <span className="pet-emoji" style={{ fontSize: look.size }}>{look.emoji}</span>
+        <div className={`pet-stage ${fed ? 'fed' : ''}`}>
+          <Creature species={pet.species} level={lvl.index} size={creatureSize} happy={fed} />
+        </div>
+        {fed && (
+          <div className="feed-fx" aria-hidden>
+            {['💚', '✨', '💧', '⭐', '💚'].map((e, i) => (
+              <span key={i} className="fx" style={{ left: `${30 + i * 11}%`, animationDelay: `${i * 0.08}s` }}>{e}</span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="pet-body">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div className="pet-name">{pet.name}</div>
-            <div className="muted" style={{ fontSize: 13 }}>{look.stageName} · {m.emoji} {m.text}</div>
+            <div className="muted" style={{ fontSize: 13 }}>{lvl.name} · {m.emoji} {m.text}</div>
           </div>
           <span className="points-pill">✨ {points}</span>
         </div>
 
-        {/* Growth toward the next stage */}
+        {/* This stage's growth pool (resets each evolution) */}
         <div style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }} className="muted">
-            <span>Growth</span>
-            <span>{stage.next ? `${look.stageName} → ${stage.next.name}` : 'Fully grown 🌟'}</span>
+            <span>{lvl.next ? `${lvl.name} → ${lvl.next}` : 'Fully grown 🌟'}</span>
+            <span>{lvl.next ? `${Math.round(lvl.into)} / ${lvl.needed}` : 'Elder'}</span>
           </div>
-          <div className="bar good" style={{ height: 10 }}><span style={{ width: `${stage.progress * 100}%` }} /></div>
+          <div className="bar good" style={{ height: 10 }}><span style={{ width: `${lvl.progress * 100}%` }} /></div>
         </div>
 
         {/* Care meters */}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../store/AppContext'
 import { today } from '../lib/dates'
 import { SPECIES } from '../lib/pet'
+import { Creature } from './Creature'
 import type { PetSpecies } from '../types'
 
 // A warm, low-pressure intro. We ask only what we need to be useful, and frame
@@ -82,23 +83,34 @@ export function Onboarding() {
 
       {step === 3 && (
         <div className="card">
-          <h2>Meet your companion 🥚</h2>
+          <h2>Meet your companion</h2>
           <p className="soft">
             As you care for yourself, you’ll earn points to feed a little creature — and watch it
-            grow. Pick who you’d like to raise:
+            evolve through six life stages. Pick who you’d like to raise:
           </p>
-          <div className="chip-row" style={{ marginTop: 12, marginBottom: 14 }}>
+
+          {/* Big preview of the chosen baby */}
+          <div className="center" style={{ margin: '6px 0 4px' }}>
+            <div style={{ display: 'inline-block', background: 'linear-gradient(180deg, var(--blue-soft), var(--sage-soft))', borderRadius: 20, padding: '10px 24px' }}>
+              <Creature species={species} level={0} size={104} />
+            </div>
+          </div>
+
+          <div className="species-grid">
             {SPECIES.map((s) => (
               <button
                 key={s.id}
-                className={`chip ${species === s.id ? 'selected' : ''}`}
+                className={`species-pick ${species === s.id ? 'selected' : ''}`}
                 onClick={() => setSpecies(s.id)}
+                aria-label={s.label}
               >
-                <span className="emoji">{s.emoji}</span> {s.label}
+                <Creature species={s.id} level={0} size={46} />
+                <span>{s.label}</span>
               </button>
             ))}
           </div>
-          <div className="field">
+
+          <div className="field" style={{ marginTop: 14 }}>
             <label>Give them a name</label>
             <input type="text" value={petName} maxLength={16} onChange={(e) => setPetName(e.target.value)} />
           </div>

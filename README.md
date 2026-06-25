@@ -26,16 +26,20 @@ for pregnancy — instead of yelling *"You have 237 calories left."*
 
 ## Features
 
-- **🐸 Grow a companion (the game)** — caring for yourself earns **points**, and
-  the amount is dictated by *quality*: a protein- and veg-rich meal eaten at
-  comfortable hunger beats a plain one; more movement earns more (up to a kind
-  cap); water, sleep, prenatal, cycle-logging and coach check-ins all count —
-  and even a hard day handled with self-compassion earns. Spend points in the
-  **Pantry** on food and water to feed a creature that **grows through stages**
-  (egg → hatchling → … → radiant), with a celebration each time it levels up.
-  Pick and name your companion (frog, turtle, axolotl, whale, dragon, chick).
-  It only ever grows and never dies — at most it gets a little sleepy until you
-  feed it. No guilt, ever.
+- **🐸 Raise a companion (the game)** — caring for yourself earns **points**,
+  weighted by *quality*: a protein- and veg-rich meal eaten at comfortable
+  hunger beats a plain one; more movement earns more (up to a kind cap); water,
+  sleep, prenatal, cycle-logging and coach check-ins all count — and even a hard
+  day handled with self-compassion earns. Spend points in the **Pantry** on food
+  and water to feed a creature that **physically evolves**, Pokémon-style,
+  through six life stages — **Baby → Toddler → Adolescent → Young Adult → Adult
+  → Elder**. Each stage needs its *own* fresh pool of points (100 → 150 → 200 →
+  300 → 500), not a running total. Pick and name one of **five species** (Sprout,
+  Frog, Finn, Dragon, Birdie), each drawn as a custom SVG that grows limbs and a
+  signature feature and earns spectacles as an Elder. Feeding plays a cute care
+  animation (bounce, hearts, sparkles, happy face + a haptic buzz), and there's
+  a celebration each time it evolves. It only ever grows and never dies — at
+  most it gets a little sleepy until you feed it. No guilt, ever.
 - **Dashboard** — your companion front and centre, today's points and how you
   earned them, plus Recovery / Nutrition / Movement / Water / Sleep / Stress and
   your Cycle Day. No calories.
@@ -98,8 +102,8 @@ src/
                 achievements (trophies), points (economy), pet (companion engine),
                 grocery, api (backend client + fallback), notifications, export
   store/        React context + reducer, localStorage persistence, demo seed data
-  components/   Dashboard, PetHabitat, Shop, Exercise, Nutrition, Fertility,
-                Trends/Trophies, Coach, BadDay, Settings…
+  components/   Dashboard, PetHabitat, Creature (evolving SVG), Shop, Exercise,
+                Nutrition, Fertility, Trends/Trophies, Coach, BadDay, Settings…
   styles/       one cute global stylesheet (blue / green / black / gray)
 public/sw.js    service worker (reminder notifications + installable PWA)
 ```
