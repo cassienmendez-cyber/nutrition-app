@@ -1176,3 +1176,11 @@ html[data-theme='dark'] .phase-chip { background: rgba(16, 21, 24, 0.72); }
 /* Let native controls (date/time pickers, spinners, scrollbars) match the theme. */
 html[data-theme='dark'] { color-scheme: dark; }
 html[data-theme='light'] { color-scheme: light; }
+
+/* Wellbeing-meters caption — clarifies these aren't points. */
+.meters-cap {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin: 2px 2px 8px;
+  line-height: 1.4;
+}

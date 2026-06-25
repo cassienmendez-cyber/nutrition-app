@@ -94,6 +94,9 @@ export function PetHabitat() {
         </div>
 
         {/* Care meters */}
+        <div className="meters-cap">
+          {pet.name}’s wellbeing — feed &amp; water to keep these up. (Not your points; a new buddy starts content.)
+        </div>
         <div className="meters">
           <Meter emoji="🍽" label="Fullness" value={pet.fullness} color="var(--sage)" />
           <Meter emoji="💧" label="Water" value={pet.hydration} color="var(--blue)" />
