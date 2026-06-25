@@ -106,7 +106,7 @@ export interface Profile {
 // it never dies — at most it gets a little sleepy until you feed it.
 // ---------------------------------------------------------------------------
 
-export type PetSpecies = 'sprout' | 'frog' | 'fish' | 'dragon' | 'bird' | 'dog'
+export type PetSpecies = 'sprout' | 'frog' | 'fish' | 'dragon' | 'bird' | 'dog' | 'dog2'
 
 export interface Pet {
   name: string

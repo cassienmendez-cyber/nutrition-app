@@ -62,7 +62,7 @@ function migrate(state: AppState): AppState {
 // Older pets used a single `growth` total and a larger species set. Convert to
 // the per-stage level model and remap retired species to the current five.
 const SPECIES_REMAP: Record<string, Pet['species']> = {
-  sprout: 'sprout', frog: 'frog', fish: 'fish', dragon: 'dragon', bird: 'bird',
+  sprout: 'sprout', frog: 'frog', fish: 'fish', dragon: 'dragon', bird: 'bird', dog: 'dog', dog2: 'dog2',
   turtle: 'frog', axolotl: 'fish', whale: 'fish', chick: 'bird',
 }
 

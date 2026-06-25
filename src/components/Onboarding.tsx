@@ -18,7 +18,7 @@ export function Onboarding() {
   const [species, setSpecies] = useState<PetSpecies>('frog')
 
   // A friendly default name per species (until the user types their own).
-  const defaultName = (s: PetSpecies) => (s === 'dog' ? 'Riley' : 'Pip')
+  const defaultName = (s: PetSpecies) => (s === 'dog' ? 'Riley' : s === 'dog2' ? 'Chase' : 'Pip')
 
   function finish() {
     setPet({ name: petName.trim() || 'Pip', species })
