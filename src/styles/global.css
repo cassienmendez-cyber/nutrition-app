@@ -988,3 +988,12 @@ input:focus, textarea:focus, select:focus {
 }
 .switch:checked { background: var(--sage); }
 .switch:checked::after { transform: translateX(18px); }
+
+/* Phone push reminder box */
+.push-box {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, var(--blue-soft), transparent);
+}

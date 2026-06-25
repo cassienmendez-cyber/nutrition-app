@@ -12,3 +12,6 @@ tsconfig.tsbuildinfo
 
 # local env (API keys)
 .env
+
+# push subscriptions (runtime data)
+server/push-subscriptions.json

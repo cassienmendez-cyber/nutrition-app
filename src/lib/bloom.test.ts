@@ -452,3 +452,27 @@ describe('workout (GPS tracking)', () => {
     expect(routePath([{ lat: 40, lng: -73, t: 0 }], 320, 220)).toBe('') // need ≥2 points
   })
 })
+
+describe('push reminder schedule', () => {
+  it('builds eat + exercise + prenatal + check-in items from settings', async () => {
+    const { pushItems, DEFAULT_REMINDERS } = await import('./notifications')
+    const items = pushItems({ ...DEFAULT_REMINDERS, eatTimes: ['08:00', '12:30', '18:30'] })
+    const tags = items.map((i) => i.tag)
+    expect(tags).toContain('prenatal')
+    expect(tags).toContain('exercise')
+    expect(tags.filter((t) => t.startsWith('eat-'))).toHaveLength(3)
+    // every item has a valid HH:MM time and a message
+    for (const it of items) {
+      expect(it.time).toMatch(/^\d{2}:\d{2}$/)
+      expect(it.title.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('omits categories that are turned off', async () => {
+    const { pushItems, DEFAULT_REMINDERS } = await import('./notifications')
+    const items = pushItems({ ...DEFAULT_REMINDERS, eat: false, exercise: false })
+    const tags = items.map((i) => i.tag)
+    expect(tags.some((t) => t.startsWith('eat-'))).toBe(false)
+    expect(tags).not.toContain('exercise')
+  })
+})

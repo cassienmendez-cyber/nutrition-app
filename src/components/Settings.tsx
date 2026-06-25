@@ -8,6 +8,15 @@ import {
   notificationsSupported,
   startReminderScheduler,
   showNotification,
+  pushSupported,
+  pushActive,
+  pushServerKey,
+  enablePush,
+  disablePush,
+  syncPush,
+  sendTestPush,
+  isIOS,
+  isStandalone,
   type ReminderSettings,
 } from '../lib/notifications'
 import { exportJSON, exportCSV, importJSON } from '../lib/exportData'
@@ -25,10 +34,54 @@ export function Settings({ onClose }: { onClose: () => void }) {
   const [claude, setClaude] = useState<boolean | null>(null)
   const [sound, setSound] = useState(isSoundOn())
   const [msg, setMsg] = useState('')
+  const [pushOnServer, setPushOnServer] = useState<boolean | null>(null)
+  const [phonePush, setPhonePush] = useState(pushActive())
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushMsg, setPushMsg] = useState('')
 
   useEffect(() => {
     coachStatus().then(setClaude)
+    // Does the backend have push (VAPID) configured?
+    if (pushSupported()) pushServerKey().then((k) => setPushOnServer(!!k))
+    else setPushOnServer(false)
   }, [])
+
+  async function turnOnPhonePush() {
+    setPushBusy(true)
+    setPushMsg('')
+    const next = { ...reminders, enabled: true }
+    const res = await enablePush(next)
+    setPushBusy(false)
+    if (res.ok) {
+      saveReminders(next)
+      setReminders(next)
+      setPerm(permission())
+      setPhonePush(true)
+      setPushMsg('Phone reminders are on. 🎉')
+    } else {
+      const reasons: Record<string, string> = {
+        unsupported: 'This browser can’t do push notifications.',
+        'needs-install': 'On iPhone, first add Bloom to your Home Screen (Share → Add to Home Screen), then open it from there.',
+        denied: 'Notification permission was blocked. Re-enable it in your browser settings.',
+        'no-server': 'The reminder server isn’t set up yet (no VAPID keys). Reminders will still fire while the app is open.',
+        error: 'Something went wrong turning on push. Try again.',
+      }
+      setPushMsg(reasons[res.reason] ?? 'Could not enable push.')
+    }
+  }
+
+  async function turnOffPhonePush() {
+    setPushBusy(true)
+    await disablePush()
+    setPushBusy(false)
+    setPhonePush(false)
+    setPushMsg('Phone reminders turned off.')
+  }
+
+  async function testPhonePush() {
+    const ok = await sendTestPush()
+    setPushMsg(ok ? 'Sent! It should arrive on your phone shortly.' : 'Couldn’t send a test push.')
+  }
 
   // Close on Escape.
   useEffect(() => {
@@ -42,6 +95,13 @@ export function Settings({ onClose }: { onClose: () => void }) {
     setReminders(next)
     saveReminders(next)
     if (next.enabled) startReminderScheduler()
+    // If phone push is on, push the updated schedule to the server too.
+    if (pushActive()) syncPush(next)
+  }
+
+  function setEatTime(i: number, value: string) {
+    const eatTimes = reminders.eatTimes.map((t, j) => (j === i ? value : t))
+    update({ eatTimes })
   }
 
   async function enableNotifications() {
@@ -222,6 +282,36 @@ export function Settings({ onClose }: { onClose: () => void }) {
                 </div>
 
                 <div className="stat-row">
+                  <span className="emoji">🍎</span>
+                  <div className="body"><div className="name">Eat</div><div className="detail">meal nudges</div></div>
+                  <button className={`chip ${reminders.eat ? 'selected' : ''}`} onClick={() => update({ eat: !reminders.eat })}>
+                    {reminders.eat ? '✓' : 'off'}
+                  </button>
+                </div>
+                {reminders.eat && (
+                  <div className="stat-row" style={{ paddingTop: 0 }}>
+                    <span className="emoji" style={{ opacity: 0 }}>🍎</span>
+                    <div className="body"><div className="detail">meal times</div></div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {reminders.eatTimes.map((t, i) => (
+                        <input key={i} type="time" value={t} style={{ width: 104 }} onChange={(e) => setEatTime(i, e.target.value)} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="stat-row">
+                  <span className="emoji">🤸</span>
+                  <div className="body"><div className="name">Exercise</div><div className="detail">daily move nudge</div></div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="time" value={reminders.exerciseTime} style={{ width: 120 }} onChange={(e) => update({ exerciseTime: e.target.value })} />
+                    <button className={`chip ${reminders.exercise ? 'selected' : ''}`} onClick={() => update({ exercise: !reminders.exercise })}>
+                      {reminders.exercise ? '✓' : 'off'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="stat-row">
                   <span className="emoji">💧</span>
                   <div className="body"><div className="name">Water</div><div className="detail">every {reminders.waterIntervalHours}h, daytime</div></div>
                   <div className="stepper">
@@ -250,12 +340,51 @@ export function Settings({ onClose }: { onClose: () => void }) {
                   </button>
                 </div>
 
+                {/* Phone push — reminders that arrive even when Bloom is closed */}
+                <div className="push-box">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                    <div>
+                      <div className="name" style={{ fontWeight: 700 }}>📱 Phone reminders</div>
+                      <div className="detail" style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>
+                        {phonePush ? 'On — these arrive even when Bloom is closed.' : 'Get nudges even when the app is closed.'}
+                      </div>
+                    </div>
+                    {pushSupported() ? (
+                      phonePush ? (
+                        <button className="chip selected" disabled={pushBusy} onClick={turnOffPhonePush}>On</button>
+                      ) : (
+                        <button className="btn" style={{ width: 'auto', padding: '8px 14px' }} disabled={pushBusy} onClick={turnOnPhonePush}>
+                          {pushBusy ? '…' : 'Turn on'}
+                        </button>
+                      )
+                    ) : (
+                      <span className="muted" style={{ fontSize: 12 }}>Unavailable</span>
+                    )}
+                  </div>
+
+                  {phonePush && (
+                    <button className="btn ghost small" style={{ marginTop: 10 }} onClick={testPhonePush}>
+                      Send a test to my phone
+                    </button>
+                  )}
+
+                  {/* Contextual help */}
+                  {isIOS() && !isStandalone() && (
+                    <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
+                      📲 On iPhone: tap Share → <strong>Add to Home Screen</strong>, then open Bloom from there to enable phone reminders.
+                    </p>
+                  )}
+                  {pushOnServer === false && (
+                    <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
+                      The reminder server isn’t configured yet, so reminders fire only while Bloom is open. (Set up VAPID keys to enable phone push.)
+                    </p>
+                  )}
+                  {pushMsg && <p className="soft" style={{ fontSize: 12.5, margin: '8px 0 0' }}>{pushMsg}</p>}
+                </div>
+
                 <button className="btn ghost small" style={{ marginTop: 12 }} onClick={() => showNotification('🌱 Test reminder', 'This is how a Bloom nudge looks.')}>
-                  Send a test reminder
+                  Send a test reminder (while open)
                 </button>
-                <p className="muted" style={{ fontSize: 12, margin: '10px 0 0' }}>
-                  Reminders fire while Bloom is open. Add it to your home screen for the best experience.
-                </p>
               </>
             )}
           </div>

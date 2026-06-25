@@ -10,6 +10,10 @@ export interface ReminderSettings {
   enabled: boolean
   prenatal: boolean
   prenatalTime: string // 'HH:MM'
+  eat: boolean
+  eatTimes: string[] // meal nudge times 'HH:MM'
+  exercise: boolean
+  exerciseTime: string // 'HH:MM'
   water: boolean
   waterIntervalHours: number
   checkIn: boolean
@@ -19,11 +23,16 @@ export interface ReminderSettings {
 
 const KEY = 'bloom.reminders.v1'
 const FIRED_KEY = 'bloom.reminders.fired.v1'
+const PUSH_KEY = 'bloom.push.v1' // stores the active push endpoint when subscribed
 
 export const DEFAULT_REMINDERS: ReminderSettings = {
   enabled: false,
   prenatal: true,
   prenatalTime: '09:00',
+  eat: true,
+  eatTimes: ['08:00', '12:30', '18:30'],
+  exercise: true,
+  exerciseTime: '17:30',
   water: true,
   waterIntervalHours: 3,
   checkIn: true,
@@ -151,12 +160,30 @@ function tick() {
   const now = hhmmNow()
   const hour = new Date().getHours()
 
-  if (r.prenatal && now === r.prenatalTime && !firedToday('prenatal')) {
+  // When Web Push is active, the SERVER fires the timed reminders (so they work
+  // even with the app closed). Skip them locally to avoid double-notifying.
+  const pushOn = pushActive()
+
+  if (!pushOn && r.prenatal && now === r.prenatalTime && !firedToday('prenatal')) {
     markFired('prenatal')
     showNotification('💊 Prenatal reminder', 'A quiet daily win — take your prenatal when you can.')
   }
 
-  if (r.checkIn && now === r.checkInTime && !firedToday('checkin')) {
+  if (!pushOn && r.eat) {
+    r.eatTimes.forEach((t, i) => {
+      if (now === t && !firedToday(`eat-${i}`)) {
+        markFired(`eat-${i}`)
+        showNotification('🍎 Time to nourish', 'A protein-forward bite keeps your energy steady. No rules — just fuel. 💚')
+      }
+    })
+  }
+
+  if (!pushOn && r.exercise && now === r.exerciseTime && !firedToday('exercise')) {
+    markFired('exercise')
+    showNotification('🤸 Movement time', 'Even 10 gentle minutes counts. Tap to track a walk?')
+  }
+
+  if (!pushOn && r.checkIn && now === r.checkInTime && !firedToday('checkin')) {
     markFired('checkin')
     showNotification('🌱 How was today?', 'Tell your coach about your day — no judgment, just a check-in.')
   }
@@ -198,5 +225,175 @@ export function stopReminderScheduler() {
   if (timer !== null) {
     clearInterval(timer)
     timer = null
+  }
+}
+
+// --- Web Push (reminders that fire even when the app is closed) -------------
+// Needs the backend configured with VAPID keys. If it isn't, these helpers
+// fail gracefully and the local scheduler above keeps working while open.
+
+export function pushSupported(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window
+  )
+}
+
+// Is the app running as an installed PWA? (Required for Web Push on iOS.)
+export function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    // iOS Safari exposes this non-standard flag.
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  )
+}
+
+export function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /iphone|ipad|ipod/i.test(navigator.userAgent)
+}
+
+export function pushActive(): boolean {
+  try {
+    return !!localStorage.getItem(PUSH_KEY)
+  } catch {
+    return false
+  }
+}
+
+function urlBase64ToBuffer(base64: string): ArrayBuffer {
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(b64)
+  const buf = new ArrayBuffer(raw.length)
+  const out = new Uint8Array(buf)
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i)
+  return buf
+}
+
+// The exact reminders we hand to the server, with their messages baked in so
+// the backend stays a dumb scheduler. Times are local 'HH:MM'.
+export interface PushItem {
+  time: string
+  title: string
+  body: string
+  tag: string
+  url: string
+}
+
+export function pushItems(r: ReminderSettings): PushItem[] {
+  const items: PushItem[] = []
+  if (r.prenatal) items.push({ time: r.prenatalTime, title: '💊 Prenatal reminder', body: 'A quiet daily win — take your prenatal when you can.', tag: 'prenatal', url: '/' })
+  if (r.eat) r.eatTimes.forEach((t, i) => items.push({ time: t, title: '🍎 Time to nourish', body: 'A protein-forward bite keeps your energy steady. No rules — just fuel. 💚', tag: `eat-${i}`, url: '/' }))
+  if (r.exercise) items.push({ time: r.exerciseTime, title: '🤸 Movement time', body: 'Even 10 gentle minutes counts. Tap to track a walk?', tag: 'exercise', url: '/' })
+  if (r.checkIn) items.push({ time: r.checkInTime, title: '🌱 How was today?', body: 'Tell your coach about your day — no judgment, just a check-in.', tag: 'checkin', url: '/' })
+  return items
+}
+
+// Does the backend have push configured? Returns the VAPID public key or null.
+export async function pushServerKey(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/push/key')
+    if (!res.ok) return null
+    const data = await res.json()
+    return typeof data?.key === 'string' && data.key ? data.key : null
+  } catch {
+    return null
+  }
+}
+
+export type PushResult =
+  | { ok: true }
+  | { ok: false; reason: 'unsupported' | 'needs-install' | 'denied' | 'no-server' | 'error' }
+
+// Turn on phone push: request permission, subscribe, and register the schedule
+// with the server. Safe to call repeatedly (it re-syncs the schedule).
+export async function enablePush(r: ReminderSettings): Promise<PushResult> {
+  if (!pushSupported()) return { ok: false, reason: 'unsupported' }
+  // iOS only allows Web Push from an installed (Home Screen) PWA.
+  if (isIOS() && !isStandalone()) return { ok: false, reason: 'needs-install' }
+
+  const key = await pushServerKey()
+  if (!key) return { ok: false, reason: 'no-server' }
+
+  const perm = await requestPermission()
+  if (perm !== 'granted') return { ok: false, reason: 'denied' }
+
+  try {
+    await registerServiceWorker()
+    const reg = await navigator.serviceWorker.ready
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToBuffer(key),
+      })
+    }
+    const res = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: sub,
+        items: pushItems(r),
+        tzOffset: new Date().getTimezoneOffset(), // minutes; local = UTC - offset
+      }),
+    })
+    if (!res.ok) return { ok: false, reason: 'error' }
+    try {
+      localStorage.setItem(PUSH_KEY, sub.endpoint)
+    } catch {
+      /* ignore */
+    }
+    return { ok: true }
+  } catch {
+    return { ok: false, reason: 'error' }
+  }
+}
+
+// Re-send the schedule to the server (call after the user edits reminder times).
+export async function syncPush(r: ReminderSettings): Promise<void> {
+  if (!pushActive()) return
+  await enablePush(r)
+}
+
+export async function disablePush(): Promise<void> {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) {
+      await fetch('/api/push/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      }).catch(() => {})
+      await sub.unsubscribe().catch(() => {})
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    localStorage.removeItem(PUSH_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+// Fire a test push right now through the server, to confirm the loop works.
+export async function sendTestPush(): Promise<boolean> {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (!sub) return false
+    const res = await fetch('/api/push/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub }),
+    })
+    return res.ok
+  } catch {
+    return false
   }
 }
