@@ -14,6 +14,7 @@ import { detectNewTrophy, TIER_META, type EarnedEvent } from './lib/achievements
 import { detectPetLevelUp } from './lib/pet'
 import { playEvolve } from './lib/sound'
 import { Creature } from './components/Creature'
+import { EvolutionGallery } from './components/EvolutionGallery'
 
 type Tab = 'today' | 'move' | 'eat' | 'cycle' | 'trends' | 'coach'
 
@@ -60,6 +61,9 @@ export default function App() {
       return () => clearTimeout(t)
     }
   }, [state.pet.level])
+
+  // Reference chart of all creature evolutions, at /#evolutions.
+  if (typeof window !== 'undefined' && window.location.hash === '#evolutions') return <EvolutionGallery />
 
   if (!state.onboarded) return <Onboarding />
 
