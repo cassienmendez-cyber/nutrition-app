@@ -1,0 +1,36 @@
+{
+  "name": "nutrition-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Bloom — a compassion-first health companion for the journey to conceive",
+  "scripts": {
+    "dev": "vite",
+    "server": "node --env-file-if-exists=.env server/index.js",
+    "coach": "npm run build && node --env-file-if-exists=.env server/index.js --subscription",
+    "vapid": "node server/gen-vapid.js",
+    "dev:all": "concurrently -n web,api -c green,cyan \"npm run dev\" \"npm run server\"",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.69.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}

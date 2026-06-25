@@ -1,0 +1,36 @@
+name: Deploy to GitHub Pages
+
+# Builds the app and publishes it to the `gh-pages` branch, which GitHub Pages
+# serves (Settings → Pages → Source: "Deploy from a branch" → gh-pages → /root).
+# Pushing to a branch only needs contents:write, so this avoids the Pages-site
+# create-permission issue.
+on:
+  push:
+    branches: [main, claude/fertility-health-app-j4c487]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: touch dist/.nojekyll
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
