@@ -5,11 +5,12 @@ import { pregnancyPrepScore } from '../lib/scores'
 import { buildGroceryPlan, type GroceryPlan } from '../lib/grocery'
 import { askCoach, getWeeklyReview } from '../lib/api'
 import { Ring } from './Ring'
+import { useDictation } from '../lib/speech'
 
 export function Coach() {
   const { state, todayLog, addCheckIn } = useApp()
   const [text, setText] = useState('')
-  const [listening, setListening] = useState(false)
+  const dictation = useDictation(setText)
   const [sending, setSending] = useState(false)
   const [budget, setBudget] = useState(120)
   const [plan, setPlan] = useState<GroceryPlan | null>(null)
@@ -49,26 +50,6 @@ export function Coach() {
     setSending(false)
   }
 
-  // A friendly stand-in for true voice capture. If the browser supports the
-  // Web Speech API we use it; otherwise we drop in a realistic sample so the
-  // audio-first idea is still demonstrable.
-  function toggleVoice() {
-    const SR = (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition
-    if (!SR) {
-      setText(
-        'I skipped breakfast, my ankle hurts, work was stressful, and all I want is ice cream.',
-      )
-      return
-    }
-    const rec = new SR()
-    rec.continuous = false
-    rec.interimResults = false
-    rec.onstart = () => setListening(true)
-    rec.onend = () => setListening(false)
-    rec.onresult = (e: SpeechResultLike) => setText(e.results[0][0].transcript)
-    rec.start()
-  }
-
   return (
     <div className="screen">
       <div className="screen-head">
@@ -86,13 +67,20 @@ export function Coach() {
           onChange={(e) => setText(e.target.value)}
         />
         <div className="row" style={{ marginTop: 10 }}>
-          <button className="btn secondary" onClick={toggleVoice}>
-            {listening ? '🎙 Listening…' : '🎙 Speak'}
-          </button>
+          {dictation.supported && (
+            <button className="btn secondary" aria-pressed={dictation.listening} onClick={() => (dictation.listening ? dictation.stop() : dictation.start())}>
+              {dictation.listening ? '🔴 Listening…' : '🎙 Speak'}
+            </button>
+          )}
           <button className="btn" onClick={send} disabled={sending}>
             {sending ? 'Thinking…' : 'Send to coach'}
           </button>
         </div>
+        {!dictation.supported && (
+          <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
+            Tip: tap the 🎙 on your keyboard to dictate instead of typing.
+          </p>
+        )}
 
         {(todayLog.checkIns.length > 0 || sending) && (
           <div style={{ marginTop: 16 }}>
@@ -209,17 +197,4 @@ export function Coach() {
       </div>
     </div>
   )
-}
-
-// Minimal typings for the optional Web Speech API.
-interface SpeechResultLike {
-  results: { 0: { transcript: string } }[]
-}
-interface SpeechRecognitionLike {
-  continuous: boolean
-  interimResults: boolean
-  onstart: () => void
-  onend: () => void
-  onresult: (e: SpeechResultLike) => void
-  start: () => void
 }

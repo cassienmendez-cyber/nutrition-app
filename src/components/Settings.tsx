@@ -23,6 +23,7 @@ import { exportJSON, exportCSV, importJSON } from '../lib/exportData'
 import { coachInfo, type CoachMode } from '../lib/api'
 import { SPECIES, petLevelInfo, LEVELS } from '../lib/pet'
 import { isSoundOn, setSoundOn, playFeed } from '../lib/sound'
+import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { Creature } from './Creature'
 
 export function Settings({ onClose }: { onClose: () => void }) {
@@ -34,6 +35,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
   const [claude, setClaude] = useState<boolean | null>(null)
   const [coachMode, setCoachMode] = useState<CoachMode>('off')
   const [sound, setSound] = useState(isSoundOn())
+  const [theme, setTheme] = useState<ThemePref>(getThemePref())
   const [msg, setMsg] = useState('')
   const [pushOnServer, setPushOnServer] = useState<boolean | null>(null)
   const [phonePush, setPhonePush] = useState(pushActive())
@@ -209,6 +211,33 @@ export function Settings({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           )}
+
+          {/* Appearance */}
+          <div className="card">
+            <div className="card-title">Appearance</div>
+            <div className="stat-row" style={{ borderBottom: 'none' }}>
+              <span className="emoji">🌗</span>
+              <div className="body">
+                <div className="name">Theme</div>
+                <div className="detail">Dark mode is easy on the eyes at night</div>
+              </div>
+              <div className="seg">
+                {(['auto', 'light', 'dark'] as ThemePref[]).map((t) => (
+                  <button
+                    key={t}
+                    className={theme === t ? 'on' : ''}
+                    aria-pressed={theme === t}
+                    onClick={() => {
+                      setTheme(t)
+                      setThemePref(t)
+                    }}
+                  >
+                    {t === 'auto' ? 'Auto' : t === 'light' ? 'Light' : 'Dark'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* Sound */}
           <div className="card">

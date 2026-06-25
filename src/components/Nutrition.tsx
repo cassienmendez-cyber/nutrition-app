@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp, newId } from '../store/AppContext'
 import { weeklyInsights } from '../lib/coach'
 import { suggestMeals, CRAVING_OPTIONS, type Craving } from '../lib/grocery'
+import { MicButton } from './MicButton'
 import type { EatingReason, MealSlot } from '../types'
 
 const SLOTS: { value: MealSlot; label: string }[] = [
@@ -131,12 +132,15 @@ export function Nutrition() {
 
             <div className="field">
               <label>What was it?</label>
-              <input
-                type="text"
-                value={desc}
-                placeholder="e.g. yogurt & berries, or pizza — no judgment"
-                onChange={(e) => setDesc(e.target.value)}
-              />
+              <div className="input-mic">
+                <input
+                  type="text"
+                  value={desc}
+                  placeholder="e.g. yogurt & berries, or pizza — no judgment"
+                  onChange={(e) => setDesc(e.target.value)}
+                />
+                <MicButton onText={setDesc} title="Say what you ate" />
+              </div>
             </div>
 
             <div className="field">
